@@ -10,16 +10,81 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Usuario del sistema
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  favorites Favorite[]
+  notes     Note[]
+}
+
 // Modelo para almacenar caché de relojes de la API externa
 model ClockCache {
-  id          Int      @id @default(autoincrement())
-  externalId  String   @unique // ID del reloj en la API externa
-  data        Json     // Datos completos del reloj
-  fetchedAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  externalId String   @unique // ID del reloj en la API externa
+  data      Json     // Datos completos del reloj
+  fetchedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([externalId])
   @@index([fetchedAt])
+}
+
+// Favoritos de usuario
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  clockId   String   // ID del reloj (viene de API externa)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clockId])
+  @@index([userId])
+  @@index([clockId])
+}
+
+// Notas personales
+model Note {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  clockId   String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tags      NoteTag[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clockId])
+  @@index([userId])
+  @@index([clockId])
+}
+
+// Tags para notas
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  color     String    // hex color
+  createdAt DateTime  @default(now())
+  notes     NoteTag[]
+
+  @@index([name])
+}
+
+// Relación muchos a muchos entre Note y Tag
+model NoteTag {
+  noteId Int
+  tagId  Int
+  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([noteId])
+  @@index([tagId])
 }
 
 // Modelo para configuraciones del sistema
