@@ -1,8 +1,8 @@
-import { getAllClocks } from "@/lib/clocks";
 import ClocksTable from "@/components/clocks/ClocksTable";
+import { fetchClocks } from "@/lib/clocks-api";
 
-export default function ClocksDashboardPage() {
-  const clocks = getAllClocks();
-
-  return <ClocksTable clocks={clocks} />;
+export default async function ClocksPage() {
+  const response = await fetchClocks({ pageSize: 50, archived: false });
+  
+  return <ClocksTable clocks={response.data} />;
 }
