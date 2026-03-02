@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo para almacenar caché de relojes de la API externa
+model ClockCache {
+  id          Int      @id @default(autoincrement())
+  externalId  String   @unique // ID del reloj en la API externa
+  data        Json     // Datos completos del reloj
+  fetchedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([externalId])
+  @@index([fetchedAt])
+}
+
+// Modelo para configuraciones del sistema
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo para logs de actividad
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
