@@ -12,7 +12,7 @@ interface RouteParams {
  * Returns clock detail by id
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const clock = getClockById(params.id);
+  const clock = await getClockById(params.id);
 
   if (!clock) {
     return NextResponse.json(

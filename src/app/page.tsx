@@ -1,5 +1,5 @@
 import ClocksTable from "@/components/clocks/ClocksTable";
-import { fetchClocks } from "@/lib/clocks-api";
+import { fetchClocks } from "@/lib/clocks";
 
 export default async function Home() {
   const response = await fetchClocks({ pageSize: 50, archived: false });

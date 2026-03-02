@@ -6,24 +6,40 @@ const API_ARCHIVE = "https://automation.dimensiontei.com/webhook/archive-item";
 const AUTH_USER = "relojes";
 const AUTH_PASS = "nnS4MDu9DcJb";
 
-export type ClockPricePoint = {
-  date: string;
+export type Photo = {
+  id: number;
+  url: string;
+  position: number;
+  is_primary: boolean;
+  last_seen_at: string;
+  first_seen_at: string;
+};
+
+export type PriceHistory = {
+  id: number;
   price: number;
+  currency: string;
+  captured_at: string;
 };
 
 export type Clock = {
   id: string;
+  source: string;
+  url: string;
   title: string;
   description: string | null;
-  latest_price: string;
+  username: string;
+  archived: number | null;
+  first_seen_at: string;
+  last_seen_at: string;
   island_id: number;
   island_name: string;
   island_slug: string;
-  source: string;
-  first_seen_at: string;
-  photos: string[];
-  price_history: ClockPricePoint[];
-  archived: number;
+  latest_price: string;
+  latest_currency: string;
+  latest_price_captured_at: string;
+  photos: Photo[];
+  price_history: PriceHistory[];
 };
 
 export type ClocksResponse = {
@@ -75,7 +91,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
     
     const data = await response.json();
     
-    // La API devuelve array directo o con paginación
+    // La API devuelve array directo
     if (Array.isArray(data)) {
       return {
         data: data,
@@ -88,7 +104,6 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
     return data;
   } catch (error) {
     console.error("Error fetching clocks:", error);
-    // Retornar vacío en caso de error
     return {
       data: [],
       total: 0,

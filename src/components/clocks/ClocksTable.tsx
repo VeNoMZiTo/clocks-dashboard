@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Clock } from "@/lib/clocks-api";
+import type { Clock } from "@/lib/clocks";
 
 const ISLANDS = [
   "Tenerife",

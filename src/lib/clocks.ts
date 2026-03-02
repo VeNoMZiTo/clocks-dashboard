@@ -1,3 +1,8 @@
+const API_BASE = "https://automation.dimensiontei.com/webhook/clocks";
+
+const AUTH_USER = "relojes";
+const AUTH_PASS = "nnS4MDu9DcJb";
+
 export type ClockPricePoint = {
   date: string;
   price: number;
@@ -19,66 +24,190 @@ export type Clock = {
   priceHistory: ClockPricePoint[];
 };
 
-const clocks: Clock[] = [
-  {
-    id: "reloj-at-001",
-    title: "Rolex Submariner 116610LN",
-    description:
-      "Edición clásica en acero Oyster con bisel Cerachrom. Conserva caja y brazalete originales, con mantenimiento reciente. Incluye documentación y estuche.",
-    price: 10350,
-    currency: "EUR",
-    island: "Tenerife",
-    source: "Relojería Isla Norte",
-    publishedAt: "2026-02-14",
-    firstSeenAt: "2026-02-02",
-    updatedAt: "2026-03-01",
-    sourceUrl: "https://elatico.com/fuentes/relojeria-isla-norte",
-    photos: [
-      "/assets/clocks/submariner-1.svg",
-      "/assets/clocks/submariner-2.svg",
-      "/assets/clocks/submariner-3.svg",
-      "/assets/clocks/submariner-4.svg"
-    ],
-    priceHistory: [
-      { date: "2026-02-02", price: 11200 },
-      { date: "2026-02-10", price: 10950 },
-      { date: "2026-02-18", price: 10700 },
-      { date: "2026-02-25", price: 10550 },
-      { date: "2026-03-01", price: 10350 }
-    ]
-  },
-  {
-    id: "reloj-at-002",
-    title: "Omega Speedmaster Professional",
-    description:
-      "Cronógrafo icónico con calibre 1861. Brazalete con ligera pátina natural y cristal hesalite. Revisado por taller autorizado.",
-    price: 6750,
-    currency: "EUR",
-    island: "Gran Canaria",
-    source: "Chronos del Atlántico",
-    publishedAt: "2026-02-20",
-    firstSeenAt: "2026-02-08",
-    updatedAt: "2026-02-28",
-    sourceUrl: "https://elatico.com/fuentes/chronos-atlantico",
-    photos: [
-      "/assets/clocks/speedmaster-1.svg",
-      "/assets/clocks/speedmaster-2.svg",
-      "/assets/clocks/speedmaster-3.svg"
-    ],
-    priceHistory: [
-      { date: "2026-02-08", price: 7100 },
-      { date: "2026-02-14", price: 6990 },
-      { date: "2026-02-20", price: 6850 },
-      { date: "2026-02-24", price: 6790 },
-      { date: "2026-02-28", price: 6750 }
-    ]
-  }
-];
+type ApiPhoto = {
+  url?: string;
+};
 
-export function getClockById(id: string): Clock | undefined {
-  return clocks.find((clock) => clock.id === id);
+type ApiPriceHistory = {
+  price?: number;
+  captured_at?: string;
+  date?: string;
+};
+
+type ApiClock = {
+  id: string | number;
+  title?: string;
+  description?: string | null;
+  latest_price?: string | number;
+  latest_currency?: string;
+  island_id?: number;
+  island_name?: string;
+  source?: string;
+  first_seen_at?: string;
+  last_seen_at?: string;
+  latest_price_captured_at?: string;
+  url?: string;
+  photos?: Array<ApiPhoto | string>;
+  price_history?: ApiPriceHistory[];
+};
+
+export type ClocksFilters = {
+  page?: number;
+  pageSize?: number;
+  island?: string | number;
+  archived?: boolean;
+  sort?: string;
+  dir?: "asc" | "desc";
+};
+
+export type ClocksResponse = {
+  data: Clock[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function getAuthHeaders(): HeadersInit {
+  const credentials = typeof btoa === "function"
+    ? btoa(`${AUTH_USER}:${AUTH_PASS}`)
+    : Buffer.from(`${AUTH_USER}:${AUTH_PASS}`).toString("base64");
+  return {
+    Authorization: `Basic ${credentials}`,
+    "Content-Type": "application/json"
+  };
 }
 
-export function getAllClocks(): Clock[] {
-  return clocks;
+function normalizePhotos(photos: Array<ApiPhoto | string> | undefined): string[] {
+  if (!Array.isArray(photos)) return [];
+  return photos
+    .map((photo) => (typeof photo === "string" ? photo : photo.url))
+    .filter((url): url is string => Boolean(url));
+}
+
+function normalizePriceHistory(
+  history: ApiPriceHistory[] | undefined,
+  fallbackDate: string,
+  fallbackPrice: number
+): ClockPricePoint[] {
+  if (!Array.isArray(history)) return [];
+  return history.map((entry) => ({
+    date: entry.captured_at ?? entry.date ?? fallbackDate,
+    price: typeof entry.price === "number" ? entry.price : fallbackPrice
+  }));
+}
+
+function mapClock(apiClock: ApiClock): Clock {
+  const price = typeof apiClock.latest_price === "number"
+    ? apiClock.latest_price
+    : Number.parseFloat(apiClock.latest_price ?? "0");
+  const currency = apiClock.latest_currency ?? "EUR";
+  const publishedAt =
+    apiClock.last_seen_at ??
+    apiClock.latest_price_captured_at ??
+    apiClock.first_seen_at ??
+    new Date().toISOString();
+  const updatedAt =
+    apiClock.last_seen_at ??
+    apiClock.latest_price_captured_at ??
+    publishedAt;
+  const firstSeenAt = apiClock.first_seen_at ?? publishedAt;
+
+  return {
+    id: String(apiClock.id),
+    title: apiClock.title ?? "",
+    description: apiClock.description ?? "",
+    price,
+    currency,
+    island: apiClock.island_name ?? String(apiClock.island_id ?? ""),
+    source: apiClock.source ?? "",
+    publishedAt,
+    firstSeenAt,
+    updatedAt,
+    sourceUrl: apiClock.url ?? "",
+    photos: normalizePhotos(apiClock.photos),
+    priceHistory: normalizePriceHistory(apiClock.price_history, publishedAt, price)
+  };
+}
+
+export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksResponse> {
+  const params = new URLSearchParams();
+
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters.island) params.set("island", String(filters.island));
+  if (filters.archived !== undefined) params.set("archived", String(filters.archived));
+  if (filters.sort) params.set("sort", filters.sort);
+  if (filters.dir) params.set("dir", filters.dir);
+
+  const url = `${API_BASE}?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (Array.isArray(data)) {
+      return {
+        data: data.map(mapClock),
+        total: data.length,
+        page: filters.page ?? 1,
+        pageSize: filters.pageSize ?? data.length
+      };
+    }
+
+    return {
+      data: Array.isArray(data.data) ? data.data.map(mapClock) : [],
+      total: Number(data.total ?? 0),
+      page: Number(data.page ?? filters.page ?? 1),
+      pageSize: Number(data.pageSize ?? filters.pageSize ?? 50)
+    };
+  } catch (error) {
+    console.error("Error fetching clocks:", error);
+    return {
+      data: [],
+      total: 0,
+      page: 1,
+      pageSize: 50
+    };
+  }
+}
+
+export async function getClockById(id: string): Promise<Clock | undefined> {
+  const pageSize = 100;
+  const firstPage = await fetchClocks({ page: 1, pageSize });
+  const initialMatch = firstPage.data.find((clock) => clock.id === id);
+  if (initialMatch) return initialMatch;
+
+  const totalPages = Math.min(10, Math.ceil(firstPage.total / pageSize));
+  for (let page = 2; page <= totalPages; page += 1) {
+    const response = await fetchClocks({ page, pageSize });
+    const match = response.data.find((clock) => clock.id === id);
+    if (match) return match;
+  }
+
+  return undefined;
+}
+
+export async function getAllClocks(): Promise<Clock[]> {
+  const pageSize = 100;
+  const firstPage = await fetchClocks({ page: 1, pageSize });
+  const totalPages = Math.min(10, Math.ceil(firstPage.total / pageSize));
+
+  if (totalPages <= 1) {
+    return firstPage.data;
+  }
+
+  const pages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      fetchClocks({ page: index + 2, pageSize })
+    )
+  );
+
+  return [firstPage.data, ...pages.map((page) => page.data)].flat();
 }
