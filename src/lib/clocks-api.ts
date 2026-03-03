@@ -42,11 +42,18 @@ export type Clock = {
   price_history: PriceHistory[];
 };
 
+export type PaginationMeta = {
+  pageSize: string;
+  page: string;
+  totalPages: number;
+};
+
 export type ClocksResponse = {
   data: Clock[];
   total: number;
   page: number;
   pageSize: number;
+  totalPages: number;
 };
 
 export type ClocksFilters = {
@@ -89,19 +96,41 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       throw new Error(`API error: ${response.status}`);
     }
     
-    const data = await response.json();
+    const rawData = await response.json();
     
-    // La API devuelve array directo
-    if (Array.isArray(data)) {
+    // La API devuelve un array con los relojes y al final los metadatos de paginación
+    if (Array.isArray(rawData)) {
+      // Extraer metadatos del último elemento si existe
+      const lastItem = rawData[rawData.length - 1];
+      let paginationMeta: PaginationMeta | null = null;
+      let clocks: Clock[] = rawData;
+      
+      // Verificar si el último elemento tiene metadatos de paginación
+      if (lastItem && typeof lastItem === 'object' && 'totalPages' in lastItem) {
+        paginationMeta = lastItem as PaginationMeta;
+        clocks = rawData.slice(0, -1) as Clock[];
+      }
+      
+      const pageSize = paginationMeta?.pageSize ? parseInt(paginationMeta.pageSize) : filters.pageSize || 50;
+      const totalPages = paginationMeta?.totalPages || 1;
+      const page = paginationMeta?.page ? parseInt(paginationMeta.page) : filters.page || 1;
+      
       return {
-        data: data,
-        total: data.length,
-        page: filters.page || 1,
-        pageSize: filters.pageSize || 50,
+        data: clocks,
+        total: totalPages * pageSize, // Estimación del total
+        page,
+        pageSize,
+        totalPages,
       };
     }
     
-    return data;
+    return {
+      data: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    };
   } catch (error) {
     console.error("Error fetching clocks:", error);
     return {
@@ -109,6 +138,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       total: 0,
       page: 1,
       pageSize: 50,
+      totalPages: 0,
     };
   }
 }

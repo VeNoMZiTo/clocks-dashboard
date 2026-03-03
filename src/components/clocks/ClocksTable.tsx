@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { fetchClocks, getAllClocks } from "@/lib/clocks";
 import type { Clock } from "@/lib/clocks";
 
 const ISLANDS = [
@@ -95,9 +96,17 @@ function buildSearchParams(filters: Filters) {
 
 interface ClocksTableProps {
   clocks: Clock[];
+  totalClocks: number;
+  totalPages: number;
+  pageSize: number;
 }
 
-export default function ClocksTable({ clocks }: ClocksTableProps) {
+export default function ClocksTable({
+  clocks,
+  totalClocks,
+  totalPages: initialTotalPages,
+  pageSize
+}: ClocksTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hydratedRef = useRef(false);
@@ -108,6 +117,10 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
   const [archivedMap, setArchivedMap] = useState<Record<string, boolean>>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentClocks, setCurrentClocks] = useState<Clock[]>(clocks);
+  const [allClocks, setAllClocks] = useState<Clock[] | null>(null);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [totalCount, setTotalCount] = useState(totalClocks);
 
   const debouncedFilters = {
     ...filters,
@@ -120,14 +133,21 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
 
   useEffect(() => {
     const map: Record<string, boolean> = {};
-    clocks.forEach((clock) => {
+    const dataSet = allClocks ?? currentClocks;
+    dataSet.forEach((clock) => {
       map[clock.id] = false;
     });
     setArchivedMap(map);
 
     const timer = setTimeout(() => setLoading(false), 700);
     return () => clearTimeout(timer);
-  }, [clocks]);
+  }, [allClocks, currentClocks]);
+
+  useEffect(() => {
+    setCurrentClocks(clocks);
+    setTotalPages(initialTotalPages);
+    setTotalCount(totalClocks);
+  }, [clocks, initialTotalPages, totalClocks]);
 
   useEffect(() => {
     if (!hydratedRef.current) {
@@ -153,16 +173,57 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
     router
   ]);
 
+  useEffect(() => {
+    if (allClocks) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    fetchClocks({
+      page: filters.page,
+      pageSize,
+      island: filters.island || undefined,
+      archived: filters.archived === "all" ? undefined : filters.archived === "archived",
+      sort: filters.sort,
+      dir: filters.dir
+    })
+      .then((response) => {
+        if (cancelled) return;
+        setCurrentClocks(response.data);
+        setTotalPages(response.totalPages);
+        setTotalCount(response.total);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    allClocks,
+    filters.page,
+    filters.island,
+    filters.archived,
+    filters.sort,
+    filters.dir,
+    pageSize
+  ]);
+
+  const dataSet = allClocks ?? currentClocks;
+
   const sources = useMemo(
-    () => Array.from(new Set(clocks.map((clock) => clock.source))).sort(),
-    [clocks]
+    () => Array.from(new Set(dataSet.map((clock) => clock.source))).sort(),
+    [dataSet]
   );
 
   const filteredClocks = useMemo(() => {
     const minPrice = Number(debouncedFilters.priceMin);
     const maxPrice = Number(debouncedFilters.priceMax);
 
-    return clocks
+    return dataSet
       .filter((clock) => {
         const isArchived = archivedMap[clock.id] ?? false;
         if (debouncedFilters.archived === "archived" && !isArchived) return false;
@@ -190,12 +251,18 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
         }
         return 0;
       });
-  }, [clocks, debouncedFilters, archivedMap]);
+  }, [dataSet, debouncedFilters, archivedMap]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredClocks.length / PAGE_SIZE));
-  const page = Math.min(filters.page, totalPages);
+  const usingAllClocks = Boolean(allClocks);
+  const totalPagesForView = usingAllClocks
+    ? Math.max(1, Math.ceil(filteredClocks.length / PAGE_SIZE))
+    : Math.max(1, totalPages);
+  const totalLabel = usingAllClocks ? filteredClocks.length : totalCount;
+  const page = Math.min(filters.page, totalPagesForView);
   const start = (page - 1) * PAGE_SIZE;
-  const paginatedClocks = filteredClocks.slice(start, start + PAGE_SIZE);
+  const paginatedClocks = usingAllClocks
+    ? filteredClocks.slice(start, start + PAGE_SIZE)
+    : filteredClocks;
 
   useEffect(() => {
     if (filters.page !== page) {
@@ -251,7 +318,7 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
             </p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-400">
-            {filteredClocks.length} resultados · página {page} de {totalPages}
+            Página {page} de {totalPagesForView} · total relojes: {totalLabel}
           </div>
         </div>
       </header>
@@ -376,8 +443,25 @@ export default function ClocksTable({ clocks }: ClocksTableProps) {
 
         <Pagination
           page={page}
-          totalPages={totalPages}
+          totalPages={totalPagesForView}
           onChange={(next) => setFilters((prev) => ({ ...prev, page: next }))}
+          usingAllClocks={usingAllClocks}
+          onLoadAll={async () => {
+            setLoading(true);
+            try {
+              const all = await getAllClocks();
+              setAllClocks(all);
+              setTotalCount(all.length);
+              setFilters((prev) => ({ ...prev, page: 1 }));
+            } finally {
+              setLoading(false);
+            }
+          }}
+          onLoadPaged={() => {
+            setAllClocks(null);
+            setTotalCount(totalClocks);
+            setFilters((prev) => ({ ...prev, page: 1 }));
+          }}
         />
       </main>
     </div>
@@ -616,18 +700,24 @@ function BulkActions({
 function Pagination({
   page,
   totalPages,
-  onChange
+  onChange,
+  usingAllClocks,
+  onLoadAll,
+  onLoadPaged
 }: {
   page: number;
   totalPages: number;
   onChange: (page: number) => void;
+  usingAllClocks: boolean;
+  onLoadAll: () => void | Promise<void>;
+  onLoadPaged: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 px-6 py-4">
       <span className="text-sm text-zinc-400">
         Página {page} de {totalPages}
       </span>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => onChange(Math.max(1, page - 1))}
@@ -644,6 +734,23 @@ function Pagination({
         >
           Siguiente
         </button>
+        {usingAllClocks ? (
+          <button
+            type="button"
+            onClick={onLoadPaged}
+            className="rounded-full border border-emerald-500/50 px-4 py-2 text-xs text-emerald-300 transition hover:border-emerald-400"
+          >
+            Ver paginado
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onLoadAll}
+            className="rounded-full border border-emerald-500/50 px-4 py-2 text-xs text-emerald-300 transition hover:border-emerald-400"
+          >
+            Ver todo
+          </button>
+        )}
       </div>
     </div>
   );

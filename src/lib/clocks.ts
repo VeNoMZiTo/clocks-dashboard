@@ -63,6 +63,7 @@ export type ClocksFilters = {
 export type ClocksResponse = {
   data: Clock[];
   total: number;
+  totalPages: number;
   page: number;
   pageSize: number;
 };
@@ -153,25 +154,37 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
     const data = await response.json();
 
     if (Array.isArray(data)) {
+      const pageSize = Number(filters.pageSize ?? data.length ?? 0) || data.length || 1;
+      const total = data.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
       return {
         data: data.map(mapClock),
-        total: data.length,
+        total,
+        totalPages,
         page: filters.page ?? 1,
-        pageSize: filters.pageSize ?? data.length
+        pageSize
       };
     }
 
+    const pageSize = Number(data.pageSize ?? filters.pageSize ?? 50) || 50;
+    const page = Number(data.page ?? filters.page ?? 1);
+    const apiTotalPages = Number(data.totalPages ?? 0);
+    const total = apiTotalPages ? apiTotalPages * pageSize : Number(data.total ?? 0);
+    const totalPages = apiTotalPages || Math.max(1, Math.ceil(total / pageSize));
+
     return {
       data: Array.isArray(data.data) ? data.data.map(mapClock) : [],
-      total: Number(data.total ?? 0),
-      page: Number(data.page ?? filters.page ?? 1),
-      pageSize: Number(data.pageSize ?? filters.pageSize ?? 50)
+      total,
+      totalPages,
+      page,
+      pageSize
     };
   } catch (error) {
     console.error("Error fetching clocks:", error);
     return {
       data: [],
       total: 0,
+      totalPages: 1,
       page: 1,
       pageSize: 50
     };

@@ -3,7 +3,7 @@ import { fetchClocks } from "@/lib/clocks";
 
 export default async function Home() {
   const response = await fetchClocks({ pageSize: 50, archived: false });
-  
+
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -15,8 +15,13 @@ export default async function Home() {
             {response.total} relojes encontrados
           </p>
         </header>
-        
-        <ClocksTable clocks={response.data} />
+
+        <ClocksTable
+          clocks={response.data}
+          totalClocks={response.total}
+          totalPages={response.totalPages}
+          pageSize={response.pageSize}
+        />
       </div>
     </main>
   );
