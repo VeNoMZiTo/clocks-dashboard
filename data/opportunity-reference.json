@@ -1,0 +1,20 @@
+[
+  {
+    "brand": "Rolex",
+    "keywords": ["Submariner", "Datejust", "Explorer"],
+    "marketPrice": 8500,
+    "sources": ["Chrono24", "eBay", "Segunda mano"]
+  },
+  {
+    "brand": "Omega",
+    "keywords": ["Speedmaster", "Seamaster"],
+    "marketPrice": 3200,
+    "sources": ["Chrono24", "eBay", "Segunda mano"]
+  },
+  {
+    "brand": "Seiko",
+    "keywords": ["Prospex", "Seiko 5"],
+    "marketPrice": 450,
+    "sources": ["eBay", "Segunda mano"]
+  }
+]

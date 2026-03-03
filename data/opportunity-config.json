@@ -1,0 +1,26 @@
+{
+  "analysis": {
+    "minDiscountRatio": 1.0,
+    "maxResults": 5,
+    "pageSize": 200,
+    "maxPages": 5
+  },
+  "highRotationBrands": [
+    "Rolex",
+    "Omega",
+    "Seiko",
+    "Tudor",
+    "Tag Heuer",
+    "Longines",
+    "Cartier"
+  ],
+  "negotiationDiscount": 0.1,
+  "negotiationTemplates": [
+    "Hola, ¿aceptarías {offerPrice}€? Estoy listo para cerrar hoy."
+  ],
+  "schedule": {
+    "analysisTime": "03:00",
+    "notifyTime": "08:00",
+    "timezone": "Atlantic/Canary"
+  }
+}

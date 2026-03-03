@@ -36,3 +36,7 @@ Nginx will expose the app on http://localhost:80
 
 - Production image uses Next.js standalone output (multi-stage build)
 - Nginx is configured as a reverse proxy to the app container
+
+## Sistema nocturno de oportunidades
+
+Ver la guía en `docs/opportunities.md` para configurar el análisis nocturno y la notificación por Telegram.
