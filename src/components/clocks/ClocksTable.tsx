@@ -240,7 +240,9 @@ export default function ClocksTable({
   const [favoriteMap, setFavoriteMap] = useState<Record<string, boolean>>({});
   const [leadStatusMap, setLeadStatusMap] = useState<LeadStatusMap>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(clocks.length === 0);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentClocks, setCurrentClocks] = useState<Clock[]>(clocks);
   const [allClocks, setAllClocks] = useState<Clock[] | null>(null);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
@@ -276,9 +278,6 @@ export default function ClocksTable({
     });
     setArchivedMap(map);
     setFavoriteMap(favoriteDefaults);
-
-    const timer = setTimeout(() => setLoading(false), 700);
-    return () => clearTimeout(timer);
   }, [allClocks, currentClocks]);
 
   useEffect(() => {
@@ -348,26 +347,43 @@ export default function ClocksTable({
 
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
-    fetchClocks({
-      page: filters.page,
-      pageSize,
-      island: filters.island || undefined,
-      archived: filters.archived === "all" ? undefined : filters.archived === "archived",
-      sort: filters.sort,
-      dir: filters.dir
-    })
-      .then((response) => {
+    async function fetchWithRetry(attempt: number) {
+      try {
+        const response = await fetchClocks({
+          page: filters.page,
+          pageSize,
+          island: filters.island || undefined,
+          archived: filters.archived === "all" ? undefined : filters.archived === "archived",
+          sort: filters.sort,
+          dir: filters.dir
+        });
+        
         if (cancelled) return;
+        
         setCurrentClocks(response.data);
         setTotalPages(response.totalPages);
         setTotalCount(response.total);
         setLoading(false);
-      })
-      .catch(() => {
+        setError(null);
+        setRetryCount(0);
+      } catch (err) {
         if (cancelled) return;
-        setLoading(false);
-      });
+        
+        if (attempt < 3) {
+          // Retry with exponential backoff
+          const delay = Math.pow(2, attempt) * 1000;
+          setTimeout(() => fetchWithRetry(attempt + 1), delay);
+        } else {
+          setLoading(false);
+          setError("No se pudo cargar los relojes. Inténtalo de nuevo.");
+          setRetryCount(attempt);
+        }
+      }
+    }
+
+    fetchWithRetry(0);
 
     return () => {
       cancelled = true;
@@ -555,6 +571,7 @@ export default function ClocksTable({
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (allClocks) {
         // If viewing all clocks, refresh all
@@ -575,67 +592,82 @@ export default function ClocksTable({
         setTotalPages(response.totalPages);
         setTotalCount(response.total);
       }
+    } catch (err) {
+      setError("Error al actualizar. Inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
   }, [allClocks, filters.page, filters.island, filters.archived, filters.sort, filters.dir, pageSize]);
+
+  // Manual retry handler
+  const handleRetry = useCallback(() => {
+    setRetryCount(0);
+    setError(null);
+    setLoading(true);
+  }, []);
+
+  function buildExportData(exportSource: Clock[]) {
+    const exportInsights = buildInsightsForClocks(exportSource, opportunitySet);
+    const exportFiltered = filterClocksForExport(
+      exportSource,
+      debouncedFilters,
+      archivedMap,
+      leadStatusMap,
+      exportInsights
+    );
+
+    const headers = [
+      "id",
+      "titulo",
+      "precio",
+      "moneda",
+      "isla",
+      "fuente",
+      "publicado",
+      "primera_vez",
+      "actualizado",
+      "url",
+      "archivado",
+      "lead_status",
+      "marca",
+      "modelo",
+      "tags",
+      "oportunidad",
+      "precio_bajado_pct"
+    ];
+
+    const rows = exportFiltered.map((clock) => {
+      const insight = exportInsights[clock.id];
+      return [
+        clock.id,
+        clock.title,
+        clock.price,
+        clock.currency,
+        clock.island,
+        clock.source,
+        clock.publishedAt,
+        clock.firstSeenAt,
+        clock.updatedAt,
+        clock.sourceUrl,
+        archivedMap[clock.id] ? "archived" : "active",
+        getLeadStatusForClock(leadStatusMap, clock.id),
+        insight?.brand ?? "",
+        insight?.model ?? "",
+        (insight?.tags ?? []).join("|"),
+        insight?.isOpportunity ? "si" : "no",
+        insight?.priceDropPercent ?? 0
+      ];
+    });
+
+    return { headers, rows };
+  }
 
   const handleExportCSV = useCallback(async () => {
     if (typeof window === "undefined") return;
     setExporting(true);
     try {
       const exportSource = allClocks ?? (await getAllClocks());
-      const exportInsights = buildInsightsForClocks(exportSource, opportunitySet);
-      const exportFiltered = filterClocksForExport(
-        exportSource,
-        debouncedFilters,
-        archivedMap,
-        leadStatusMap,
-        exportInsights
-      );
-
-      const headers = [
-        "id",
-        "titulo",
-        "precio",
-        "moneda",
-        "isla",
-        "fuente",
-        "publicado",
-        "primera_vez",
-        "actualizado",
-        "url",
-        "archivado",
-        "lead_status",
-        "marca",
-        "modelo",
-        "tags",
-        "oportunidad",
-        "precio_bajado_pct"
-      ];
-
-      const rows = exportFiltered.map((clock) => {
-        const insight = exportInsights[clock.id];
-        return [
-          clock.id,
-          clock.title,
-          clock.price,
-          clock.currency,
-          clock.island,
-          clock.source,
-          clock.publishedAt,
-          clock.firstSeenAt,
-          clock.updatedAt,
-          clock.sourceUrl,
-          archivedMap[clock.id] ? "archived" : "active",
-          getLeadStatusForClock(leadStatusMap, clock.id),
-          insight?.brand ?? "",
-          insight?.model ?? "",
-          (insight?.tags ?? []).join("|"),
-          insight?.isOpportunity ? "si" : "no",
-          insight?.priceDropPercent ?? 0
-        ];
-      });
+      const { headers, rows } = buildExportData(exportSource);
 
       const csv = [headers, ...rows]
         .map((row) => row.map(toCsvValue).join(","))
@@ -645,6 +677,47 @@ export default function ClocksTable({
       const link = document.createElement("a");
       link.href = url;
       link.download = `relojes-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }, [
+    allClocks,
+    archivedMap,
+    debouncedFilters,
+    leadStatusMap,
+    opportunitySet
+  ]);
+
+  const handleExportExcel = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    setExporting(true);
+    try {
+      const exportSource = allClocks ?? (await getAllClocks());
+      const { headers, rows } = buildExportData(exportSource);
+
+      const escapeHtml = (value: unknown) =>
+        String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const tableRows = [
+        `<tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`,
+        ...rows.map(
+          (row) =>
+            `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`
+        )
+      ].join("");
+
+      const html = `<!doctype html><html><head><meta charset="UTF-8" /></head><body><table>${tableRows}</table></body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `relojes-${new Date().toISOString().slice(0, 10)}.xls`;
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -711,7 +784,8 @@ export default function ClocksTable({
             brands={brands}
             models={models}
             tags={autoTags}
-            onExport={handleExportCSV}
+            onExportCSV={handleExportCSV}
+            onExportExcel={handleExportExcel}
             exporting={exporting}
           />
 
@@ -719,6 +793,28 @@ export default function ClocksTable({
             selected={selectedIds}
             onArchive={(archived) => handleArchive(selectedIds, archived)}
           />
+
+          {error && (
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-rose-300">{error}</p>
+                  {retryCount > 0 && (
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Intentos realizados: {retryCount}/3
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="rounded-full border border-rose-500/50 px-4 py-2 text-xs text-rose-300 transition hover:border-rose-400"
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          )}
 
           <section className="space-y-4 md:hidden">
             {loading
@@ -1012,7 +1108,8 @@ function FiltersPanel({
   brands,
   models,
   tags,
-  onExport,
+  onExportCSV,
+  onExportExcel,
   exporting
 }: {
   filters: Filters;
@@ -1021,7 +1118,8 @@ function FiltersPanel({
   brands: string[];
   models: string[];
   tags: string[];
-  onExport: () => void;
+  onExportCSV: () => void;
+  onExportExcel: () => void;
   exporting: boolean;
 }) {
   return (
@@ -1282,11 +1380,19 @@ function FiltersPanel({
         </button>
         <button
           type="button"
-          onClick={onExport}
+          onClick={onExportCSV}
           disabled={exporting}
           className="rounded-full border border-emerald-500/50 px-4 py-2 text-xs text-emerald-300 transition hover:border-emerald-400 disabled:opacity-50"
         >
           {exporting ? "Exportando..." : "Exportar CSV"}
+        </button>
+        <button
+          type="button"
+          onClick={onExportExcel}
+          disabled={exporting}
+          className="rounded-full border border-emerald-500/50 px-4 py-2 text-xs text-emerald-300 transition hover:border-emerald-400 disabled:opacity-50"
+        >
+          {exporting ? "Exportando..." : "Exportar Excel"}
         </button>
         <span className="text-xs text-zinc-500">
           Los filtros se sincronizan con la URL para compartir la vista.
