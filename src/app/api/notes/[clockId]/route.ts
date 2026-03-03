@@ -3,9 +3,9 @@ import { verifyAccessToken, extractBearerToken } from "@/lib/auth";
 import { getNoteByUserAndClock, upsertNote, deleteNote } from "@/lib/notes";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     clockId: string;
-  };
+  }>;
 }
 
 /**
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { clockId } = params;
-  const note = await getNoteByUserAndClock(tokenData.userId, clockId);
+  const { clockId } = await params;
+  const note = await getNoteByUserAndClock(tokenData.id, clockId);
 
   if (!note) {
     return NextResponse.json(
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { clockId } = params;
+  const { clockId } = await params;
   const { content, tagIds } = body;
 
   if (!content || typeof content !== 'string') {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const note = await upsertNote(tokenData.userId, clockId, content, tagIds);
+  const note = await upsertNote(tokenData.id, clockId, content, tagIds);
 
   return NextResponse.json({
     ok: true,
@@ -120,7 +120,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -128,8 +128,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { clockId } = params;
-  const removed = await deleteNote(tokenData.userId, clockId);
+  const { clockId } = await params;
+  const removed = await deleteNote(tokenData.id, clockId);
 
   if (!removed) {
     return NextResponse.json(

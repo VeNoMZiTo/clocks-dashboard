@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClockById } from "@/lib/clocks";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 /**
@@ -12,7 +12,8 @@ interface RouteParams {
  * Returns clock detail by id
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const clock = await getClockById(params.id);
+  const { id } = await params;
+  const clock = await getClockById(id);
 
   if (!clock) {
     return NextResponse.json(

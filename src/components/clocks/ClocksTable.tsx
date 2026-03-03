@@ -10,6 +10,8 @@ import {
   getLeadStatusForClock,
   readLeadStatusMap,
   setLeadStatusForClock,
+  readArchivedMap,
+  setArchivedForClock,
   type LeadStatus,
   type LeadStatusMap
 } from "@/lib/lead-status";
@@ -269,11 +271,13 @@ export default function ClocksTable({
   };
 
   useEffect(() => {
+    // Load archived state from localStorage
+    const storedArchived = readArchivedMap();
     const map: Record<string, boolean> = {};
     const favoriteDefaults: Record<string, boolean> = {};
     const dataSet = allClocks ?? currentClocks;
     dataSet.forEach((clock) => {
-      map[clock.id] = false;
+      map[clock.id] = storedArchived[clock.id] ?? false;
       favoriteDefaults[clock.id] = false;
     });
     setArchivedMap(map);
@@ -296,6 +300,23 @@ export default function ClocksTable({
 
   function handleLeadStatusChange(clockId: string, nextStatus: LeadStatus) {
     setLeadStatusMap((prev) => setLeadStatusForClock(prev, clockId, nextStatus));
+
+    // Automatically archive when status changes to "descartado"
+    // Automatically unarchive when status changes from "descartado" to something else
+    setArchivedMap((prev) => {
+      const isCurrentlyDescartado = getLeadStatusForClock(leadStatusMap, clockId) === "descartado";
+      const willBeDescartado = nextStatus === "descartado";
+
+      if (willBeDescartado && !isCurrentlyDescartado) {
+        // Changing to descartado: archive the clock
+        return setArchivedForClock(prev, clockId, true);
+      } else if (!willBeDescartado && isCurrentlyDescartado) {
+        // Changing from descartado: unarchive the clock
+        return setArchivedForClock(prev, clockId, false);
+      }
+
+      return prev;
+    });
   }
 
   useEffect(() => {
@@ -538,9 +559,9 @@ export default function ClocksTable({
 
   function handleArchive(ids: string[], archived: boolean) {
     setArchivedMap((prev) => {
-      const updated = { ...prev };
+      let updated = { ...prev };
       ids.forEach((id) => {
-        updated[id] = archived;
+        updated = setArchivedForClock(updated, id, archived);
       });
       return updated;
     });

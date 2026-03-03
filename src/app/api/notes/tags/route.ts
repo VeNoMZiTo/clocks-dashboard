@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
       ok: true,
       tag
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle unique constraint violation
-    if (error?.code === '23505') {
+    if ((error as { code?: string })?.code === '23505') {
       return NextResponse.json(
         { error: "Ya existe una etiqueta con ese nombre" },
         { status: 409 }

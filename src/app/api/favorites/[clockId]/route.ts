@@ -3,9 +3,9 @@ import { verifyAccessToken, extractBearerToken } from "@/lib/auth";
 import { removeFavorite, isFavorite } from "@/lib/favorites";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     clockId: string;
-  };
+  }>;
 }
 
 /**
@@ -25,7 +25,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { clockId } = params;
+  const { clockId } = await params;
 
   if (!clockId) {
     return NextResponse.json(
@@ -42,7 +42,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const removed = await removeFavorite(tokenData.userId, clockId);
+  const removed = await removeFavorite(tokenData.id, clockId);
 
   if (!removed) {
     return NextResponse.json(
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -82,8 +82,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { clockId } = params;
-  const favorited = await isFavorite(tokenData.userId, clockId);
+  const { clockId } = await params;
+  const favorited = await isFavorite(tokenData.id, clockId);
 
   return NextResponse.json({
     ok: true,

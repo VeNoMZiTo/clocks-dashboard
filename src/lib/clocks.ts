@@ -3,6 +3,8 @@ const API_BASE = "https://automation.dimensiontei.com/webhook/clocks";
 const AUTH_USER = "relojes";
 const AUTH_PASS = "nnS4MDu9DcJb";
 
+const FETCH_TIMEOUT_MS = 15000; // 15 seconds timeout
+
 export type ClockPricePoint = {
   date: string;
   price: number;
@@ -142,10 +144,17 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
 
   const url = `${API_BASE}?${params.toString()}`;
 
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   try {
     const response = await fetch(url, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -154,11 +163,15 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
     const data = await response.json();
 
     if (Array.isArray(data)) {
-      const pageSize = Number(filters.pageSize ?? data.length ?? 0) || data.length || 1;
-      const total = data.length;
+      // Filter out corrupted entries with null ID or empty title
+      const validClocks = data.filter((clock: ApiClock) => 
+        clock.id != null && clock.title != null && clock.title !== ""
+      );
+      const pageSize = Number(filters.pageSize ?? validClocks.length ?? 0) || validClocks.length || 1;
+      const total = validClocks.length;
       const totalPages = Math.max(1, Math.ceil(total / pageSize));
       return {
-        data: data.map(mapClock),
+        data: validClocks.map(mapClock),
         total,
         totalPages,
         page: filters.page ?? 1,
@@ -169,18 +182,29 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
     const pageSize = Number(data.pageSize ?? filters.pageSize ?? 50) || 50;
     const page = Number(data.page ?? filters.page ?? 1);
     const apiTotalPages = Number(data.totalPages ?? 0);
-    const total = apiTotalPages ? apiTotalPages * pageSize : Number(data.total ?? 0);
+    // Filter out corrupted entries with null ID or empty title
+    const validData = Array.isArray(data.data) 
+      ? data.data.filter((clock: ApiClock) => clock.id != null && clock.title != null && clock.title !== "")
+      : [];
+    const total = apiTotalPages ? apiTotalPages * pageSize : Number(data.total ?? validData.length ?? 0);
     const totalPages = apiTotalPages || Math.max(1, Math.ceil(total / pageSize));
 
     return {
-      data: Array.isArray(data.data) ? data.data.map(mapClock) : [],
+      data: validData.map(mapClock),
       total,
       totalPages,
       page,
       pageSize
     };
   } catch (error) {
-    console.error("Error fetching clocks:", error);
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error("Fetch clocks timeout after", FETCH_TIMEOUT_MS, "ms");
+    } else {
+      console.error("Error fetching clocks:", error);
+    }
+    
     return {
       data: [],
       total: 0,

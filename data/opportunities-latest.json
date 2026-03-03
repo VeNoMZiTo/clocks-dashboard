@@ -1,0 +1,332 @@
+{
+  "generatedAt": "2026-03-03T09:12:57.795Z",
+  "totalClocks": 109,
+  "totalMatches": 13,
+  "totalPriceDrops": 0,
+  "topOpportunities": [
+    {
+      "clockId": "17",
+      "title": "Omega Seamaster Quartz Dorado",
+      "price": 550,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-quartz-dorado-1227968570",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.828125,
+      "negotiationMessage": "Hola, ¿aceptarías 495€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "34",
+      "title": "Omega Seamaster/Geneve Chronometer - Calibre 1343",
+      "price": 1350,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-geneve-chronometer-calibre-1343-1213685441",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.578125,
+      "negotiationMessage": "Hola, ¿aceptarías 1215€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "76",
+      "title": "Rolex Submariner",
+      "price": 6000,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/rolex-submariner-1217771711",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 8500,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.2941176470588235,
+      "negotiationMessage": "Hola, ¿aceptarías 5400€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "96",
+      "title": "Omega Speedmaster Mark II Cal.861 Ref.145.014",
+      "price": 2300,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-mark-ii-cal-861-ref-145-014-1199385039",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.28125,
+      "negotiationMessage": "Hola, ¿aceptarías 2070€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "48",
+      "title": "Seiko 5 Sports GMT SSK003J1 Reloj Automático",
+      "price": 329,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/seiko-5-sports-gmt-ssk003j1-reloj-automatico-1206694445",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 450,
+      "marketSources": [
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.26888888888888884,
+      "negotiationMessage": "Hola, ¿aceptarías 296€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    }
+  ],
+  "opportunities": [
+    {
+      "clockId": "99",
+      "title": "Omega Speedmaster Professional Mark II Racing",
+      "price": 2800,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-professional-mark-ii-racing-1198753629",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.125,
+      "negotiationMessage": "Hola, ¿aceptarías 2520€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "98",
+      "title": "Omega Speedmaster Automático Cal.1045 Ref.176",
+      "price": 2400,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-automatico-cal-1045-ref-176-1199046584",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.25,
+      "negotiationMessage": "Hola, ¿aceptarías 2160€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "97",
+      "title": "Omega Speedmaster Mark II Tropical Cal.861",
+      "price": 2500,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-mark-ii-tropical-cal-861-1199153623",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.21875,
+      "negotiationMessage": "Hola, ¿aceptarías 2250€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "96",
+      "title": "Omega Speedmaster Mark II Cal.861 Ref.145.014",
+      "price": 2300,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-mark-ii-cal-861-ref-145-014-1199385039",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.28125,
+      "negotiationMessage": "Hola, ¿aceptarías 2070€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "95",
+      "title": "Omega Speedmaster Mark II Cal.861 Ref.145014",
+      "price": 2400,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-speedmaster-mark-ii-cal-861-ref-145014-1199424742",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.25,
+      "negotiationMessage": "Hola, ¿aceptarías 2160€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "88",
+      "title": "Omega Seamaster Oro Rosa Automático",
+      "price": 3200,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-oro-rosa-automatico-1207580395",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0,
+      "negotiationMessage": "Hola, ¿aceptarías 2880€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "76",
+      "title": "Rolex Submariner",
+      "price": 6000,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/rolex-submariner-1217771711",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 8500,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.2941176470588235,
+      "negotiationMessage": "Hola, ¿aceptarías 5400€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "61",
+      "title": "Reloj Rolex Oyster Perpetual Datejust 116234",
+      "price": 7500,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/reloj-rolex-oyster-perpetual-datejust-116234-1231988020",
+      "island": "Gran Canaria",
+      "source": "wallapop",
+      "marketPrice": 8500,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.11764705882352944,
+      "negotiationMessage": "Hola, ¿aceptarías 6750€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "48",
+      "title": "Seiko 5 Sports GMT SSK003J1 Reloj Automático",
+      "price": 329,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/seiko-5-sports-gmt-ssk003j1-reloj-automatico-1206694445",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 450,
+      "marketSources": [
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.26888888888888884,
+      "negotiationMessage": "Hola, ¿aceptarías 296€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "43",
+      "title": "SEIKO 5 GMT Automático SSK001K1",
+      "price": 340,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/seiko-5-gmt-automatico-ssk001k1-1207752412",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 450,
+      "marketSources": [
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.24444444444444446,
+      "negotiationMessage": "Hola, ¿aceptarías 306€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "34",
+      "title": "Omega Seamaster/Geneve Chronometer - Calibre 1343",
+      "price": 1350,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-geneve-chronometer-calibre-1343-1213685441",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.578125,
+      "negotiationMessage": "Hola, ¿aceptarías 1215€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "20",
+      "title": "Omega Seamaster GMT 50 Aniversario",
+      "price": 2650,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-gmt-50-aniversario-1227863171",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.171875,
+      "negotiationMessage": "Hola, ¿aceptarías 2385€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    },
+    {
+      "clockId": "17",
+      "title": "Omega Seamaster Quartz Dorado",
+      "price": 550,
+      "currency": "EUR",
+      "sourceUrl": "https://es.wallapop.com/item/omega-seamaster-quartz-dorado-1227968570",
+      "island": "Tenerife",
+      "source": "wallapop",
+      "marketPrice": 3200,
+      "marketSources": [
+        "Chrono24",
+        "eBay",
+        "Segunda mano"
+      ],
+      "discountRatio": 0.828125,
+      "negotiationMessage": "Hola, ¿aceptarías 495€? Estoy listo para cerrar hoy.",
+      "detectedAt": "2026-03-03T09:12:57.795Z"
+    }
+  ],
+  "priceDrops": []
+}

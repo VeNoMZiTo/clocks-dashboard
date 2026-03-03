@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const notes = await getNotesByUser(tokenData.userId);
+  const notes = await getNotesByUser(tokenData.id);
 
   return NextResponse.json({
     ok: true,

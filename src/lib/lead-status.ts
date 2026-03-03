@@ -81,3 +81,42 @@ export function setLeadStatusForClock(
   writeLeadStatusMap(next);
   return next;
 }
+
+// Archived state management (persisted to localStorage)
+export type ArchivedMap = Record<string, boolean>;
+
+const ARCHIVED_STORAGE_KEY = "clocks.archivedMap";
+
+export function readArchivedMap(): ArchivedMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(ARCHIVED_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as ArchivedMap;
+  } catch {
+    return {};
+  }
+}
+
+export function writeArchivedMap(map: ArchivedMap) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ARCHIVED_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+export function getArchivedForClock(map: ArchivedMap, clockId: string): boolean {
+  return map[clockId] ?? false;
+}
+
+export function setArchivedForClock(
+  map: ArchivedMap,
+  clockId: string,
+  archived: boolean
+): ArchivedMap {
+  const next = { ...map, [clockId]: archived };
+  writeArchivedMap(next);
+  return next;
+}

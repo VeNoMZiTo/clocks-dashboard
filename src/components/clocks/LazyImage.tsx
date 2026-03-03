@@ -9,6 +9,7 @@ interface LazyImageProps {
   containerClassName?: string;
   placeholderClassName?: string;
   loading?: "lazy" | "eager";
+  onClick?: () => void;
 }
 
 export default function LazyImage({
@@ -17,7 +18,8 @@ export default function LazyImage({
   className = "",
   containerClassName = "",
   placeholderClassName = "",
-  loading = "lazy"
+  loading = "lazy",
+  onClick
 }: LazyImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -40,7 +42,7 @@ export default function LazyImage({
   }
 
   return (
-    <div className={`relative overflow-hidden ${containerClassName}`}>
+    <div className={`relative overflow-hidden ${containerClassName}`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
       {/* Placeholder skeleton */}
       {!loaded && (
         <div
@@ -54,6 +56,7 @@ export default function LazyImage({
         <div
           className={`absolute inset-0 flex items-center justify-center bg-zinc-800 text-zinc-600 ${className}`}
           aria-label={`Error loading image: ${alt}`}
+          style={{ pointerEvents: 'none' }}
         >
           <svg
             className="h-6 w-6"
@@ -82,6 +85,7 @@ export default function LazyImage({
           className={`transition-opacity duration-300 ${
             loaded ? "opacity-100" : "opacity-0"
           } ${className}`}
+          style={{ pointerEvents: 'none' }}
         />
       )}
     </div>

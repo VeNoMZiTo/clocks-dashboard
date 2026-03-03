@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const favorites = await getFavoritesByUser(tokenData.userId);
+  const favorites = await getFavoritesByUser(tokenData.id);
 
   return NextResponse.json({
     ok: true,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const tokenData = verifyAccessToken(token);
+  const tokenData = await verifyAccessToken(token);
   if (!tokenData) {
     return NextResponse.json(
       { error: "Token inválido o expirado." },
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const favorite = await addFavorite(tokenData.userId, clockId);
+  const favorite = await addFavorite(tokenData.id, clockId);
 
   return NextResponse.json({
     ok: true,
