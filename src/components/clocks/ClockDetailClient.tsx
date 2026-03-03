@@ -3,7 +3,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PhotoGallery from "@/components/clocks/PhotoGallery";
 import PriceHistoryChart from "@/components/clocks/PriceHistoryChart";
+import MarginCalculator from "@/components/clocks/MarginCalculator";
+import LeadStatusBadge from "@/components/clocks/LeadStatusBadge";
 import type { Clock } from "@/lib/clocks";
+import {
+  LEAD_STATUS_OPTIONS,
+  getLeadStatusForClock,
+  readLeadStatusMap,
+  setLeadStatusForClock,
+  type LeadStatus
+} from "@/lib/lead-status";
 
 interface ClockDetailClientProps {
   clock: Clock;
@@ -50,12 +59,18 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(tagPalette[0]);
+  const [leadStatus, setLeadStatus] = useState<LeadStatus>("nuevo");
 
   const priceDelta = useMemo(() => {
     if (clock.priceHistory.length < 2) return 0;
     const first = clock.priceHistory[0].price;
     return clock.price - first;
   }, [clock.price, clock.priceHistory]);
+
+  useEffect(() => {
+    const map = readLeadStatusMap();
+    setLeadStatus(getLeadStatusForClock(map, clock.id));
+  }, [clock.id]);
 
   useEffect(() => {
     let active = true;
@@ -147,6 +162,12 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
     } finally {
       setFavoriteLoading(false);
     }
+  }
+
+  function handleLeadStatusChange(nextStatus: LeadStatus) {
+    setLeadStatus(nextStatus);
+    const map = readLeadStatusMap();
+    setLeadStatusForClock(map, clock.id, nextStatus);
   }
 
   async function handleSaveNote() {
@@ -290,6 +311,25 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
                   <p className="text-white">{formatDate(clock.updatedAt)}</p>
                 </div>
               </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-black/40 px-4 py-3">
+                <span className="text-xs uppercase tracking-wider text-zinc-500">
+                  Estado del lead
+                </span>
+                <LeadStatusBadge status={leadStatus} />
+                <select
+                  value={leadStatus}
+                  onChange={(event) => handleLeadStatusChange(event.target.value as LeadStatus)}
+                  className="rounded-full border border-zinc-800 bg-black/60 px-3 py-1 text-xs text-white"
+                >
+                  {LEAD_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -342,6 +382,8 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
                 </div>
               </div>
             </div>
+
+            <MarginCalculator currentPrice={clock.price} currency={clock.currency} />
           </div>
         </div>
 
