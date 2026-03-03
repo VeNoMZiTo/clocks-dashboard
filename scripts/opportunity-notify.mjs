@@ -22,6 +22,16 @@ function formatOpportunity(opportunity, index) {
   ].filter(Boolean).join("\n");
 }
 
+function formatPriceDrop(drop, index) {
+  return [
+    `↓#${index + 1} • ${drop.title}`,
+    `Antes: ${drop.previousPrice} ${drop.currency}`,
+    `Ahora: ${drop.currentPrice} ${drop.currency} (-${drop.dropPercent}%)`,
+    `Fuente: ${drop.source}`,
+    drop.sourceUrl ? `Link: ${drop.sourceUrl}` : null
+  ].filter(Boolean).join("\n");
+}
+
 async function sendTelegramMessage(text) {
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn("⚠️ TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID no configurados. Mostrando mensaje en consola.");
@@ -49,17 +59,28 @@ async function main() {
   const raw = await fs.readFile(REPORT_PATH, "utf-8");
   const report = JSON.parse(raw);
   const opportunities = report.topOpportunities ?? [];
+  const priceDrops = report.priceDrops ?? [];
 
-  if (opportunities.length === 0) {
-    await sendTelegramMessage("🕵️‍♂️ No se detectaron oportunidades destacadas hoy.");
+  if (opportunities.length === 0 && priceDrops.length === 0) {
+    await sendTelegramMessage("🕵️‍♂️ No se detectaron oportunidades ni bajadas de precio hoy.");
     return;
   }
 
-  const header = `🕵️‍♂️ Oportunidades destacadas (${opportunities.length})`;
-  const body = opportunities.map(formatOpportunity).join("\n\n");
-  const footer = `Generado: ${new Date(report.generatedAt).toLocaleString("es-ES")}`;
+  const sections = [];
 
-  const message = [header, body, footer].join("\n\n");
+  if (opportunities.length > 0) {
+    sections.push(`🕵️‍♂️ Oportunidades destacadas (${opportunities.length})`);
+    sections.push(opportunities.map(formatOpportunity).join("\n\n"));
+  }
+
+  if (priceDrops.length > 0) {
+    sections.push(`📉 Bajadas de precio detectadas (${priceDrops.length})`);
+    sections.push(priceDrops.slice(0, 10).map(formatPriceDrop).join("\n\n"));
+  }
+
+  sections.push(`Generado: ${new Date(report.generatedAt).toLocaleString("es-ES")}`);
+
+  const message = sections.join("\n\n");
   await sendTelegramMessage(message);
   console.log("✅ Telegram notification sent.");
 }

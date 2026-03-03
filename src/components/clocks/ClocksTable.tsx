@@ -13,9 +13,18 @@ import {
   type LeadStatus,
   type LeadStatusMap
 } from "@/lib/lead-status";
+import {
+  buildAutoTags,
+  extractBrand,
+  extractModel,
+  getPriceDropInfo,
+  isWithinAgeBucket
+} from "@/lib/clock-insights";
 import LazyImage from "./LazyImage";
 import PullToRefresh from "./PullToRefresh";
 import LeadStatusBadge from "./LeadStatusBadge";
+import PhotoLightbox from "./PhotoLightbox";
+import BottomNav from "@/components/layout/BottomNav";
 
 const ISLANDS = [
   "Tenerife",
@@ -33,6 +42,11 @@ type Filters = {
   island: string;
   source: string;
   leadStatus: string;
+  brand: string;
+  model: string;
+  tag: string;
+  age: string;
+  opportunity: "all" | "only";
   priceMin: string;
   priceMax: string;
   dateFrom: string;
@@ -59,6 +73,88 @@ const formatDate = (value: string) =>
     day: "numeric"
   });
 
+const toCsvValue = (value: string | number | boolean | null | undefined) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  if (/["\n,]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
+function buildInsightsForClocks(clocks: Clock[], opportunitySet: Set<string>) {
+  return clocks.reduce<Record<string, { brand: string; model: string; tags: string[]; isOpportunity: boolean; priceDropPercent: number }>>(
+    (acc, clock) => {
+      const isOpportunity = opportunitySet.has(clock.id);
+      const brand = extractBrand(clock.title);
+      const model = extractModel(clock.title);
+      const drop = getPriceDropInfo(clock.priceHistory);
+      const tags = buildAutoTags({
+        title: clock.title,
+        description: clock.description,
+        isOpportunity
+      });
+      acc[clock.id] = {
+        brand,
+        model,
+        tags,
+        isOpportunity,
+        priceDropPercent: drop?.dropPercent ?? 0
+      };
+      return acc;
+    },
+    {}
+  );
+}
+
+function filterClocksForExport(
+  clocks: Clock[],
+  filters: Filters,
+  archivedMap: Record<string, boolean>,
+  leadStatusMap: LeadStatusMap,
+  insights: Record<string, { brand: string; model: string; tags: string[]; isOpportunity: boolean; priceDropPercent: number }>
+) {
+  const minPrice = Number(filters.priceMin);
+  const maxPrice = Number(filters.priceMax);
+
+  return clocks
+    .filter((clock) => {
+      const isArchived = archivedMap[clock.id] ?? false;
+      if (filters.archived === "archived" && !isArchived) return false;
+      if (filters.archived === "active" && isArchived) return false;
+      if (filters.island && clock.island !== filters.island) return false;
+      if (filters.source && clock.source !== filters.source) return false;
+      const leadStatus = getLeadStatusForClock(leadStatusMap, clock.id);
+      if (filters.leadStatus && leadStatus !== filters.leadStatus) return false;
+      const insight = insights[clock.id];
+      if (filters.brand && insight?.brand !== filters.brand) return false;
+      if (filters.model && insight?.model !== filters.model) return false;
+      if (filters.tag && !insight?.tags.includes(filters.tag)) return false;
+      if (filters.opportunity === "only" && !insight?.isOpportunity) return false;
+      if (filters.age && !isWithinAgeBucket(clock.publishedAt, filters.age)) return false;
+      if (filters.query && !clock.title.toLowerCase().includes(filters.query.toLowerCase())) return false;
+      if (filters.priceMin && clock.price < minPrice) return false;
+      if (filters.priceMax && clock.price > maxPrice) return false;
+      if (filters.dateFrom && new Date(clock.publishedAt) < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && new Date(clock.publishedAt) > new Date(filters.dateTo)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const key = filters.sort as keyof Clock;
+      const dir = filters.dir === "asc" ? 1 : -1;
+      const aValue = a[key];
+      const bValue = b[key];
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * dir;
+      }
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return aValue.localeCompare(bValue) * dir;
+      }
+      return 0;
+    });
+}
+
 function useDebouncedValue<T>(value: T, delay = 350) {
   const [debounced, setDebounced] = useState(value);
 
@@ -80,6 +176,11 @@ function parseFilters(searchParams: URLSearchParams): Filters {
     island: searchParams.get("island") ?? "",
     source: searchParams.get("source") ?? "",
     leadStatus: searchParams.get("lead") ?? "",
+    brand: searchParams.get("brand") ?? "",
+    model: searchParams.get("model") ?? "",
+    tag: searchParams.get("tag") ?? "",
+    age: searchParams.get("age") ?? "",
+    opportunity: (searchParams.get("opp") as Filters["opportunity"]) || "all",
     priceMin: searchParams.get("min") ?? "",
     priceMax: searchParams.get("max") ?? "",
     dateFrom: searchParams.get("from") ?? "",
@@ -97,6 +198,11 @@ function buildSearchParams(filters: Filters) {
   if (filters.island) params.set("island", filters.island);
   if (filters.source) params.set("source", filters.source);
   if (filters.leadStatus) params.set("lead", filters.leadStatus);
+  if (filters.brand) params.set("brand", filters.brand);
+  if (filters.model) params.set("model", filters.model);
+  if (filters.tag) params.set("tag", filters.tag);
+  if (filters.age) params.set("age", filters.age);
+  if (filters.opportunity !== "all") params.set("opp", filters.opportunity);
   if (filters.priceMin) params.set("min", filters.priceMin);
   if (filters.priceMax) params.set("max", filters.priceMax);
   if (filters.dateFrom) params.set("from", filters.dateFrom);
@@ -113,13 +219,15 @@ interface ClocksTableProps {
   totalClocks: number;
   totalPages: number;
   pageSize: number;
+  opportunityIds?: string[];
 }
 
 export default function ClocksTable({
   clocks,
   totalClocks,
   totalPages: initialTotalPages,
-  pageSize
+  pageSize,
+  opportunityIds = []
 }: ClocksTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,6 +251,10 @@ export default function ClocksTable({
     previous: boolean;
     title: string;
   }>(null);
+  const [exporting, setExporting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxClock, setLightboxClock] = useState<Clock | null>(null);
+  const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState(0);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const debouncedFilters = {
@@ -207,6 +319,11 @@ export default function ClocksTable({
     debouncedFilters.island,
     debouncedFilters.source,
     debouncedFilters.leadStatus,
+    debouncedFilters.brand,
+    debouncedFilters.model,
+    debouncedFilters.tag,
+    debouncedFilters.age,
+    debouncedFilters.opportunity,
     debouncedFilters.priceMin,
     debouncedFilters.priceMax,
     debouncedFilters.dateFrom,
@@ -266,11 +383,60 @@ export default function ClocksTable({
   ]);
 
   const dataSet = allClocks ?? currentClocks;
+  const opportunitySet = useMemo(() => new Set(opportunityIds), [opportunityIds]);
+
+  const insights = useMemo(() => {
+    return dataSet.reduce<Record<string, { brand: string; model: string; tags: string[]; isOpportunity: boolean; priceDropPercent: number }>>(
+      (acc, clock) => {
+        const isOpportunity = opportunitySet.has(clock.id);
+        const brand = extractBrand(clock.title);
+        const model = extractModel(clock.title);
+        const drop = getPriceDropInfo(clock.priceHistory);
+        const tags = buildAutoTags({
+          title: clock.title,
+          description: clock.description,
+          isOpportunity
+        });
+        acc[clock.id] = {
+          brand,
+          model,
+          tags,
+          isOpportunity,
+          priceDropPercent: drop?.dropPercent ?? 0
+        };
+        return acc;
+      },
+      {}
+    );
+  }, [dataSet, opportunitySet]);
 
   const sources = useMemo(
     () => Array.from(new Set(dataSet.map((clock) => clock.source))).sort(),
     [dataSet]
   );
+
+  const brands = useMemo(() => {
+    const items = dataSet
+      .map((clock) => insights[clock.id]?.brand)
+      .filter((brand): brand is string => Boolean(brand));
+    return Array.from(new Set(items)).sort();
+  }, [dataSet, insights]);
+
+  const models = useMemo(() => {
+    const items = dataSet
+      .filter((clock) => {
+        if (!filters.brand) return true;
+        return insights[clock.id]?.brand === filters.brand;
+      })
+      .map((clock) => insights[clock.id]?.model)
+      .filter((model): model is string => Boolean(model));
+    return Array.from(new Set(items)).sort();
+  }, [dataSet, filters.brand, insights]);
+
+  const autoTags = useMemo(() => {
+    const items = dataSet.flatMap((clock) => insights[clock.id]?.tags ?? []);
+    return Array.from(new Set(items)).sort();
+  }, [dataSet, insights]);
 
   const filteredClocks = useMemo(() => {
     const minPrice = Number(debouncedFilters.priceMin);
@@ -285,6 +451,12 @@ export default function ClocksTable({
         if (debouncedFilters.source && clock.source !== debouncedFilters.source) return false;
         const leadStatus = getLeadStatusForClock(leadStatusMap, clock.id);
         if (debouncedFilters.leadStatus && leadStatus !== debouncedFilters.leadStatus) return false;
+        const insight = insights[clock.id];
+        if (debouncedFilters.brand && insight?.brand !== debouncedFilters.brand) return false;
+        if (debouncedFilters.model && insight?.model !== debouncedFilters.model) return false;
+        if (debouncedFilters.tag && !insight?.tags.includes(debouncedFilters.tag)) return false;
+        if (debouncedFilters.opportunity === "only" && !insight?.isOpportunity) return false;
+        if (debouncedFilters.age && !isWithinAgeBucket(clock.publishedAt, debouncedFilters.age)) return false;
         if (debouncedFilters.query && !clock.title.toLowerCase().includes(debouncedFilters.query.toLowerCase())) return false;
         if (debouncedFilters.priceMin && clock.price < minPrice) return false;
         if (debouncedFilters.priceMax && clock.price > maxPrice) return false;
@@ -306,7 +478,7 @@ export default function ClocksTable({
         }
         return 0;
       });
-  }, [dataSet, debouncedFilters, archivedMap, leadStatusMap]);
+  }, [dataSet, debouncedFilters, archivedMap, leadStatusMap, insights]);
 
   const usingAllClocks = Boolean(allClocks);
   const totalPagesForView = usingAllClocks
@@ -408,6 +580,97 @@ export default function ClocksTable({
     }
   }, [allClocks, filters.page, filters.island, filters.archived, filters.sort, filters.dir, pageSize]);
 
+  const handleExportCSV = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    setExporting(true);
+    try {
+      const exportSource = allClocks ?? (await getAllClocks());
+      const exportInsights = buildInsightsForClocks(exportSource, opportunitySet);
+      const exportFiltered = filterClocksForExport(
+        exportSource,
+        debouncedFilters,
+        archivedMap,
+        leadStatusMap,
+        exportInsights
+      );
+
+      const headers = [
+        "id",
+        "titulo",
+        "precio",
+        "moneda",
+        "isla",
+        "fuente",
+        "publicado",
+        "primera_vez",
+        "actualizado",
+        "url",
+        "archivado",
+        "lead_status",
+        "marca",
+        "modelo",
+        "tags",
+        "oportunidad",
+        "precio_bajado_pct"
+      ];
+
+      const rows = exportFiltered.map((clock) => {
+        const insight = exportInsights[clock.id];
+        return [
+          clock.id,
+          clock.title,
+          clock.price,
+          clock.currency,
+          clock.island,
+          clock.source,
+          clock.publishedAt,
+          clock.firstSeenAt,
+          clock.updatedAt,
+          clock.sourceUrl,
+          archivedMap[clock.id] ? "archived" : "active",
+          getLeadStatusForClock(leadStatusMap, clock.id),
+          insight?.brand ?? "",
+          insight?.model ?? "",
+          (insight?.tags ?? []).join("|"),
+          insight?.isOpportunity ? "si" : "no",
+          insight?.priceDropPercent ?? 0
+        ];
+      });
+
+      const csv = [headers, ...rows]
+        .map((row) => row.map(toCsvValue).join(","))
+        .join("\n");
+      const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `relojes-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }, [
+    allClocks,
+    archivedMap,
+    debouncedFilters,
+    leadStatusMap,
+    opportunitySet
+  ]);
+
+  const handleOpenLightbox = useCallback((clock: Clock, photoIndex: number = 0) => {
+    if (!clock.photos || clock.photos.length === 0) return;
+    setLightboxClock(clock);
+    setLightboxPhotoIndex(photoIndex);
+    setLightboxOpen(true);
+  }, []);
+
+  const handleCloseLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxClock(null);
+    setLightboxPhotoIndex(0);
+  }, []);
+
   function applySwipeAction(clock: Clock, type: "archive" | "favorite") {
     if (type === "archive") {
       const previous = archivedMap[clock.id] ?? false;
@@ -421,7 +684,7 @@ export default function ClocksTable({
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black pb-24 text-white">
       <PullToRefresh onRefresh={handleRefresh}>
         <header className="border-b border-zinc-800 bg-zinc-950/80">
           <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
@@ -445,6 +708,11 @@ export default function ClocksTable({
             filters={filters}
             setFilters={setFilters}
             sources={sources}
+            brands={brands}
+            models={models}
+            tags={autoTags}
+            onExport={handleExportCSV}
+            exporting={exporting}
           />
 
           <BulkActions
@@ -464,6 +732,7 @@ export default function ClocksTable({
                   const isArchived = archivedMap[clock.id] ?? false;
                   const isFavorited = favoriteMap[clock.id] ?? false;
                   const leadStatus = getLeadStatusForClock(leadStatusMap, clock.id);
+                  const insight = insights[clock.id];
                   return (
                     <SwipeCard
                       key={clock.id}
@@ -471,9 +740,12 @@ export default function ClocksTable({
                       isArchived={isArchived}
                       isFavorited={isFavorited}
                       leadStatus={leadStatus}
+                      tags={insight?.tags ?? []}
+                      priceDropPercent={insight?.priceDropPercent ?? 0}
                       onLeadStatusChange={(status) => handleLeadStatusChange(clock.id, status)}
                       onSwipeArchive={() => applySwipeAction(clock, "archive")}
                       onSwipeFavorite={() => applySwipeAction(clock, "favorite")}
+                      onOpenLightbox={handleOpenLightbox}
                     />
                   );
                 })}
@@ -520,6 +792,7 @@ export default function ClocksTable({
                     : paginatedClocks.map((clock) => {
                         const isArchived = archivedMap[clock.id] ?? false;
                         const leadStatus = getLeadStatusForClock(leadStatusMap, clock.id);
+                        const insight = insights[clock.id];
                         return (
                           <tr
                             key={clock.id}
@@ -539,12 +812,36 @@ export default function ClocksTable({
                                 alt={clock.title}
                                 containerClassName="h-12 w-16 rounded-lg"
                                 className="h-full w-full object-cover"
+                                onClick={() => handleOpenLightbox(clock, 0)}
                               />
                             </td>
                             <td className="px-4 py-4">
                               <div className="text-sm font-medium text-white">
                                 {clock.title}
                               </div>
+                              {insight?.tags?.length ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {insight.tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-300"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {insight.priceDropPercent > 0 && (
+                                    <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] uppercase tracking-wide text-red-300">
+                                      PRECIO BAJADO -{insight.priceDropPercent}%
+                                    </span>
+                                  )}
+                                </div>
+                              ) : insight?.priceDropPercent > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] uppercase tracking-wide text-red-300">
+                                    PRECIO BAJADO -{insight.priceDropPercent}%
+                                  </span>
+                                </div>
+                              ) : null}
                               {isArchived && (
                                 <span className="mt-1 inline-block rounded-full bg-rose-500/20 px-2 py-1 text-xs text-rose-300">
                                   Archivado
@@ -665,7 +962,17 @@ export default function ClocksTable({
             </div>
           </div>
         )}
+        
+        {lightboxOpen && lightboxClock && (
+          <PhotoLightbox
+            photos={lightboxClock.photos}
+            title={lightboxClock.title}
+            initialIndex={lightboxPhotoIndex}
+            onClose={handleCloseLightbox}
+          />
+        )}
       </PullToRefresh>
+      <BottomNav />
     </div>
   );
 }
@@ -701,11 +1008,21 @@ function SortableHeader({
 function FiltersPanel({
   filters,
   setFilters,
-  sources
+  sources,
+  brands,
+  models,
+  tags,
+  onExport,
+  exporting
 }: {
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
   sources: string[];
+  brands: string[];
+  models: string[];
+  tags: string[];
+  onExport: () => void;
+  exporting: boolean;
 }) {
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
@@ -756,6 +1073,94 @@ function FiltersPanel({
                 {source}
               </option>
             ))}
+          </select>
+        </label>
+
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          Marca
+          <select
+            value={filters.brand}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, brand: event.target.value, model: "", page: 1 }))
+            }
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black/40 px-4 py-2 text-sm text-white"
+          >
+            <option value="">Todas</option>
+            {brands.map((brand) => (
+              <option key={brand} value={brand}>
+                {brand}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          Modelo
+          <select
+            value={filters.model}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, model: event.target.value, page: 1 }))
+            }
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black/40 px-4 py-2 text-sm text-white"
+          >
+            <option value="">Todos</option>
+            {models.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          Tags
+          <select
+            value={filters.tag}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, tag: event.target.value, page: 1 }))
+            }
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black/40 px-4 py-2 text-sm text-white"
+          >
+            <option value="">Todos</option>
+            {tags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          Oportunidad
+          <select
+            value={filters.opportunity}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                opportunity: event.target.value as Filters["opportunity"],
+                page: 1
+              }))
+            }
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black/40 px-4 py-2 text-sm text-white"
+          >
+            <option value="all">Todas</option>
+            <option value="only">Solo oportunidades</option>
+          </select>
+        </label>
+
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          Antigüedad
+          <select
+            value={filters.age}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, age: event.target.value, page: 1 }))
+            }
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black/40 px-4 py-2 text-sm text-white"
+          >
+            <option value="">Cualquiera</option>
+            <option value="24h">Últimas 24h</option>
+            <option value="7d">Últimos 7 días</option>
+            <option value="30d">Últimos 30 días</option>
           </select>
         </label>
 
@@ -856,6 +1261,11 @@ function FiltersPanel({
               island: "",
               source: "",
               leadStatus: "",
+              brand: "",
+              model: "",
+              tag: "",
+              age: "",
+              opportunity: "all",
               priceMin: "",
               priceMax: "",
               dateFrom: "",
@@ -869,6 +1279,14 @@ function FiltersPanel({
           className="rounded-full border border-zinc-700 px-4 py-2 text-xs text-zinc-300 transition hover:border-zinc-500"
         >
           Limpiar filtros
+        </button>
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={exporting}
+          className="rounded-full border border-emerald-500/50 px-4 py-2 text-xs text-emerald-300 transition hover:border-emerald-400 disabled:opacity-50"
+        >
+          {exporting ? "Exportando..." : "Exportar CSV"}
         </button>
         <span className="text-xs text-zinc-500">
           Los filtros se sincronizan con la URL para compartir la vista.
@@ -982,17 +1400,23 @@ function SwipeCard({
   isArchived,
   isFavorited,
   leadStatus,
+  tags,
+  priceDropPercent,
   onLeadStatusChange,
   onSwipeArchive,
-  onSwipeFavorite
+  onSwipeFavorite,
+  onOpenLightbox
 }: {
   clock: Clock;
   isArchived: boolean;
   isFavorited: boolean;
   leadStatus: LeadStatus;
+  tags: string[];
+  priceDropPercent: number;
   onLeadStatusChange: (status: LeadStatus) => void;
   onSwipeArchive: () => void;
   onSwipeFavorite: () => void;
+  onOpenLightbox: (clock: Clock, index: number) => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -1104,6 +1528,7 @@ function SwipeCard({
             alt={clock.title}
             containerClassName="h-20 w-24 rounded-xl"
             className="h-full w-full object-cover"
+            onClick={() => onOpenLightbox(clock, 0)}
           />
           <div className="flex-1 space-y-1">
             <p className="text-sm font-semibold text-white">
@@ -1115,6 +1540,18 @@ function SwipeCard({
             <p className="text-sm text-emerald-300">
               {formatPrice(clock.price, clock.currency)}
             </p>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1 text-[11px] text-zinc-400">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1133,6 +1570,11 @@ function SwipeCard({
               </option>
             ))}
           </select>
+          {priceDropPercent > 0 && (
+            <span className="rounded-full bg-red-500/20 px-2 py-1 text-red-300">
+              PRECIO BAJADO -{priceDropPercent}%
+            </span>
+          )}
           {isArchived && (
             <span className="rounded-full bg-rose-500/20 px-2 py-1 text-rose-300">
               Archivado

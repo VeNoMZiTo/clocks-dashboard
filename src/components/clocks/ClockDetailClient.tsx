@@ -67,6 +67,13 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
     return clock.price - first;
   }, [clock.price, clock.priceHistory]);
 
+  const priceDeltaPct = useMemo(() => {
+    if (clock.priceHistory.length < 2) return 0;
+    const first = clock.priceHistory[0].price;
+    if (!first) return 0;
+    return Math.round(((clock.price - first) / first) * 100);
+  }, [clock.price, clock.priceHistory]);
+
   useEffect(() => {
     const map = readLeadStatusMap();
     setLeadStatus(getLeadStatusForClock(map, clock.id));
@@ -289,7 +296,7 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
                   >
                     {priceDelta === 0
                       ? "Sin cambios"
-                      : `${priceDelta > 0 ? "+" : ""}${formatPrice(priceDelta, clock.currency)}`}
+                      : `${priceDelta > 0 ? "+" : ""}${formatPrice(priceDelta, clock.currency)} (${priceDeltaPct > 0 ? "+" : ""}${priceDeltaPct}%)`}
                   </p>
                 </div>
               </div>

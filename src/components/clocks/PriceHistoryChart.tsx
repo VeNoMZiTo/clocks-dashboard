@@ -43,7 +43,7 @@ export default function PriceHistoryChart({ data, currency }: PriceHistoryChartP
               borderRadius: 12
             }}
             labelStyle={{ color: "#94a3b8" }}
-            formatter={(value: number) => formatPrice(value, currency)}
+            formatter={(value: number | undefined) => value !== undefined ? formatPrice(value, currency) : ''}
           />
           <Line
             type="monotone"

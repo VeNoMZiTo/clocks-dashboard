@@ -81,6 +81,38 @@ function rankOpportunities(opportunities, config) {
   return sorted.slice(0, config.analysis?.maxResults ?? 5);
 }
 
+function detectPriceDrop(clock) {
+  if (!Array.isArray(clock.priceHistory) || clock.priceHistory.length < 2) return null;
+
+  const sorted = [...clock.priceHistory]
+    .filter((entry) => Number.isFinite(entry.price))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (sorted.length < 2) return null;
+
+  const previous = sorted[sorted.length - 2];
+  const latest = sorted[sorted.length - 1];
+  if (latest.price >= previous.price || previous.price <= 0) return null;
+
+  const dropAmount = previous.price - latest.price;
+  const dropRatio = dropAmount / previous.price;
+
+  return {
+    clockId: clock.id,
+    title: clock.title,
+    island: clock.island,
+    source: clock.source,
+    sourceUrl: clock.sourceUrl,
+    currency: clock.currency,
+    previousPrice: previous.price,
+    currentPrice: latest.price,
+    dropAmount,
+    dropRatio,
+    dropPercent: Math.round(dropRatio * 100),
+    detectedAt: new Date().toISOString()
+  };
+}
+
 async function fetchClocks({ apiBase, pageSize = 200, maxPages = 5 }) {
   const clocks = [];
   for (let page = 1; page <= maxPages; page += 1) {
@@ -149,8 +181,14 @@ async function main() {
   });
 
   const opportunities = [];
+  const priceDrops = [];
 
   for (const clock of clocks) {
+    const drop = detectPriceDrop(clock);
+    if (drop) {
+      priceDrops.push(drop);
+    }
+
     for (const reference of references) {
       if (!matchesReference(clock.title, reference)) continue;
       if (!shouldInclude(clock, reference, config)) continue;
@@ -166,8 +204,10 @@ async function main() {
     generatedAt: new Date().toISOString(),
     totalClocks: clocks.length,
     totalMatches: opportunities.length,
+    totalPriceDrops: priceDrops.length,
     topOpportunities,
-    opportunities
+    opportunities,
+    priceDrops
   };
 
   await fs.mkdir(outputDir, { recursive: true });
