@@ -8,6 +8,8 @@ interface PhotoLightboxProps {
   initialIndex: number;
   onClose: () => void;
   onArchive?: () => void;
+  price?: number | null;
+  source?: string | null;
 }
 
 interface PhotoQuality {
@@ -22,7 +24,9 @@ export default function PhotoLightbox({
   title,
   initialIndex,
   onClose,
-  onArchive
+  onArchive,
+  price,
+  source
 }: PhotoLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
@@ -316,6 +320,20 @@ export default function PhotoLightbox({
           <p className="text-white/90 text-sm">
             {title}
           </p>
+
+          {/* Price and source */}
+          <div className="flex items-center gap-4 text-sm">
+            {price != null && (
+              <span className="text-emerald-400 font-medium">
+                {price.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+              </span>
+            )}
+            {source && (
+              <span className="text-zinc-400">
+                Fuente: <span className="text-zinc-300">{source}</span>
+              </span>
+            )}
+          </div>
 
           {/* Zoom indicator */}
           {scale > 1 && (

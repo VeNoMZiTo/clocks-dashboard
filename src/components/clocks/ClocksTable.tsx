@@ -1085,6 +1085,8 @@ export default function ClocksTable({
           initialIndex={lightboxPhotoIndex}
           onClose={handleCloseLightbox}
           onArchive={() => applySwipeAction(lightboxClock, "archive")}
+          price={lightboxClock.price}
+          source={lightboxClock.source}
         />
       )}
       <BottomNav />
