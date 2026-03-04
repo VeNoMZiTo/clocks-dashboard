@@ -167,11 +167,13 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       const validClocks = data.filter((clock: ApiClock) => 
         clock.id != null && clock.title != null && clock.title !== ""
       );
-      const pageSize = Number(filters.pageSize ?? validClocks.length ?? 0) || validClocks.length || 1;
+      const pageSize = Number(filters.pageSize ?? 25) || 25;
+      const startIndex = ((filters.page ?? 1) - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
       const total = validClocks.length;
       const totalPages = Math.max(1, Math.ceil(total / pageSize));
       return {
-        data: validClocks.map(mapClock),
+        data: validClocks.slice(startIndex, endIndex).map(mapClock),
         total,
         totalPages,
         page: filters.page ?? 1,
@@ -179,7 +181,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       };
     }
 
-    const pageSize = Number(data.pageSize ?? filters.pageSize ?? 50) || 50;
+    const pageSize = Number(data.pageSize ?? filters.pageSize ?? 25) || 25;
     const page = Number(data.page ?? filters.page ?? 1);
     const apiTotalPages = Number(data.totalPages ?? 0);
     // Filter out corrupted entries with null ID or empty title
@@ -210,7 +212,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       total: 0,
       totalPages: 1,
       page: 1,
-      pageSize: 50
+      pageSize: 25
     };
   }
 }

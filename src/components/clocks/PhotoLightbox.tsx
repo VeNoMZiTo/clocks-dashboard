@@ -190,7 +190,7 @@ export default function PhotoLightbox({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="fixed right-6 top-6 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+        className="fixed right-6 top-6 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition cursor-pointer"
         aria-label="Cerrar"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -204,7 +204,7 @@ export default function PhotoLightbox({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-            className="fixed left-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+            className="fixed left-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition cursor-pointer"
             aria-label="Foto anterior"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,7 +214,7 @@ export default function PhotoLightbox({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
-            className="fixed right-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+            className="fixed right-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition cursor-pointer"
             aria-label="Siguiente foto"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

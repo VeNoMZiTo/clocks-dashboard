@@ -128,7 +128,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       data: [],
       total: 0,
       page: 1,
-      pageSize: 50,
+      pageSize: 25,
       totalPages: 0,
     };
   } catch (error) {
@@ -137,7 +137,7 @@ export async function fetchClocks(filters: ClocksFilters = {}): Promise<ClocksRe
       data: [],
       total: 0,
       page: 1,
-      pageSize: 50,
+      pageSize: 25,
       totalPages: 0,
     };
   }

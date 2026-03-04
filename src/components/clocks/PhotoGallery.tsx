@@ -7,9 +7,10 @@ import PhotoLightbox from "./PhotoLightbox";
 interface PhotoGalleryProps {
   photos: string[];
   title: string;
+  onArchive?: () => void;
 }
 
-export default function PhotoGallery({ photos, title }: PhotoGalleryProps) {
+export default function PhotoGallery({ photos, title, onArchive }: PhotoGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [dragDistance, setDragDistance] = useState(0);
@@ -167,6 +168,7 @@ export default function PhotoGallery({ photos, title }: PhotoGalleryProps) {
           title={title}
           initialIndex={activeIndex}
           onClose={() => setIsLightboxOpen(false)}
+          onArchive={onArchive}
         />
       )}
     </div>

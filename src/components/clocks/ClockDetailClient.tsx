@@ -5,6 +5,7 @@ import PhotoGallery from "@/components/clocks/PhotoGallery";
 import PriceHistoryChart from "@/components/clocks/PriceHistoryChart";
 import MarginCalculator from "@/components/clocks/MarginCalculator";
 import LeadStatusBadge from "@/components/clocks/LeadStatusBadge";
+import FormattedDate from "@/components/clocks/FormattedDate";
 import type { Clock } from "@/lib/clocks";
 import {
   LEAD_STATUS_OPTIONS,
@@ -177,6 +178,19 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
     setLeadStatusForClock(map, clock.id, nextStatus);
   }
 
+  async function handleArchive() {
+    // Call the archive webhook
+    try {
+      await fetch("https://automation.dimensiontei.com/webhook/archive-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clockId: clock.id })
+      });
+    } catch {
+      // ignore errors
+    }
+  }
+
   async function handleSaveNote() {
     if (!user || !noteContent.trim()) return;
     setNoteLoading(true);
@@ -272,7 +286,7 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
 
       <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <PhotoGallery photos={clock.photos} title={clock.title} />
+          <PhotoGallery photos={clock.photos} title={clock.title} onArchive={handleArchive} />
 
           <div className="space-y-6">
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
@@ -311,11 +325,11 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wider text-zinc-600">Publicado</p>
-                  <p className="text-white">{formatDate(clock.publishedAt)}</p>
+                  <p className="text-white"><FormattedDate value={clock.publishedAt} /></p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wider text-zinc-600">Actualizado</p>
-                  <p className="text-white">{formatDate(clock.updatedAt)}</p>
+                  <p className="text-white"><FormattedDate value={clock.updatedAt} /></p>
                 </div>
               </div>
 
@@ -340,6 +354,7 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
+                  onClick={handleArchive}
                   className="rounded-full border border-zinc-700 px-5 py-2 text-sm text-zinc-300 transition hover:border-zinc-500"
                 >
                   Archivar
@@ -381,11 +396,11 @@ export default function ClockDetailClient({ clock }: ClockDetailClientProps) {
               <div className="mt-4 space-y-2 text-sm text-zinc-400">
                 <div className="flex items-center justify-between">
                   <span>First seen</span>
-                  <span className="text-white">{formatDate(clock.firstSeenAt)}</span>
+                  <span className="text-white"><FormattedDate value={clock.firstSeenAt} /></span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Última actualización</span>
-                  <span className="text-white">{formatDate(clock.updatedAt)}</span>
+                  <span className="text-white"><FormattedDate value={clock.updatedAt} /></span>
                 </div>
               </div>
             </div>

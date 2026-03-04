@@ -519,21 +519,14 @@ export default function ClocksTable({
   }, [dataSet, debouncedFilters, archivedMap, leadStatusMap, insights]);
 
   const usingAllClocks = Boolean(allClocks);
-  const totalPagesForView = usingAllClocks
-    ? Math.max(1, Math.ceil(filteredClocks.length / PAGE_SIZE))
-    : Math.max(1, totalPages);
-  const totalLabel = usingAllClocks ? filteredClocks.length : totalCount;
-  const page = Math.min(filters.page, totalPagesForView);
+  // SIEMPRE calcular totalPages basado en filteredClocks.length / PAGE_SIZE
+  const totalPagesForView = Math.max(1, Math.ceil(filteredClocks.length / PAGE_SIZE));
+  const totalLabel = filteredClocks.length;
+  // Asegurar que la página está dentro del rango válido
+  const page = Math.max(1, Math.min(filters.page, totalPagesForView));
   const start = (page - 1) * PAGE_SIZE;
-  const paginatedClocks = usingAllClocks
-    ? filteredClocks.slice(start, start + PAGE_SIZE)
-    : filteredClocks;
-
-  useEffect(() => {
-    if (filters.page !== page) {
-      setFilters((prev) => ({ ...prev, page }));
-    }
-  }, [filters.page, page]);
+  // SIEMPRE paginar, tanto si usamos allClocks como si no
+  const paginatedClocks = filteredClocks.slice(start, start + PAGE_SIZE);
 
   function toggleSort(nextSort: string) {
     setFilters((prev) => {

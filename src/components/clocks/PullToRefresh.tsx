@@ -51,7 +51,8 @@ export default function PullToRefresh({
     startYRef.current = event.clientY;
     axisRef.current = null;
     setIsDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    // NO usar setPointerCapture - bloquea todos los clicks en elementos hijos
+    // event.currentTarget.setPointerCapture(event.pointerId);
   }, [disabled, isRefreshing]);
 
   const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -79,7 +80,8 @@ export default function PullToRefresh({
   const handlePointerUp = useCallback(async (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // NO usar releasePointerCapture - no usamos setPointerCapture
+    // event.currentTarget.releasePointerCapture(event.pointerId);
     setIsDragging(false);
 
     if (pullDistance >= threshold && !isRefreshing) {

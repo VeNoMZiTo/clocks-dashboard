@@ -5,6 +5,7 @@ import Link from "next/link";
 import BottomNav from "@/components/layout/BottomNav";
 import LazyImage from "./LazyImage";
 import LeadStatusBadge from "./LeadStatusBadge";
+import FormattedDate from "./FormattedDate";
 import {
   LEAD_STATUS_OPTIONS,
   getLeadStatusForClock,
@@ -555,7 +556,7 @@ export default function OpportunitiesTable({
                     OPORTUNIDAD
                   </span>
                   <span className="rounded-full bg-sky-500/15 px-2 py-1 text-sky-200">
-                    Detectado {formatDate(clock.detectedAt)}
+                    Detectado <FormattedDate value={clock.detectedAt} />
                   </span>
                   <span className="rounded-full bg-amber-500/15 px-2 py-1 text-amber-200">
                     Margen {marginPct}%
@@ -645,7 +646,7 @@ export default function OpportunitiesTable({
                             OPORTUNIDAD
                           </span>
                           <span className="rounded-full bg-sky-500/15 px-2 py-1 text-[10px] text-sky-200">
-                            Detectado {formatDate(clock.detectedAt)}
+                            Detectado <FormattedDate value={clock.detectedAt} />
                           </span>
                           {isArchived && (
                             <span className="rounded-full bg-rose-500/20 px-2 py-1 text-[10px] text-rose-300">
@@ -660,7 +661,7 @@ export default function OpportunitiesTable({
                       </td>
                       <td className="px-4 py-4">{clock.island}</td>
                       <td className="px-4 py-4">{clock.source}</td>
-                      <td className="px-4 py-4">{formatDate(clock.detectedAt)}</td>
+                      <td className="px-4 py-4"><FormattedDate value={clock.detectedAt} /></td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="flex items-center gap-2">
