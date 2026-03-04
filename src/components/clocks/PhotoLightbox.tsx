@@ -10,6 +10,9 @@ interface PhotoLightboxProps {
   onArchive?: () => void;
   price?: number | null;
   source?: string | null;
+  island?: string | null;
+  description?: string | null;
+  sourceUrl?: string | null;
 }
 
 interface PhotoQuality {
@@ -26,7 +29,10 @@ export default function PhotoLightbox({
   onClose,
   onArchive,
   price,
-  source
+  source,
+  island,
+  description,
+  sourceUrl
 }: PhotoLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
@@ -317,20 +323,48 @@ export default function PhotoLightbox({
           </div>
 
           {/* Photo title */}
-          <p className="text-white/90 text-sm">
+          <p className="text-white/90 text-sm font-medium">
             {title}
           </p>
 
+          {/* Island and description */}
+          {(island || description) && (
+            <div className="space-y-1">
+              {island && (
+                <p className="text-zinc-300 text-sm">
+                  📍 {island}
+                </p>
+              )}
+              {description && (
+                <p className="text-zinc-400 text-xs line-clamp-2">
+                  {description}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Price and source */}
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
             {price != null && (
-              <span className="text-emerald-400 font-medium">
+              <span className="text-emerald-400 font-semibold text-base">
                 {price.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
               </span>
             )}
             {source && (
               <span className="text-zinc-400">
-                Fuente: <span className="text-zinc-300">{source}</span>
+                Fuente: {sourceUrl ? (
+                  <a 
+                    href={sourceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {source}
+                  </a>
+                ) : (
+                  <span className="text-zinc-300">{source}</span>
+                )}
               </span>
             )}
           </div>
