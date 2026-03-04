@@ -887,8 +887,8 @@ export default function ClocksTable({
                     <SortableHeader label="Precio" sortKey="price" current={filters} onSort={toggleSort} />
                     <SortableHeader label="Isla" sortKey="island" current={filters} onSort={toggleSort} />
                     <SortableHeader label="Fuente" sortKey="source" current={filters} onSort={toggleSort} />
+                    <SortableHeader label="Usuario" sortKey="username" current={filters} onSort={toggleSort} />
                     <SortableHeader label="Fecha" sortKey="publishedAt" current={filters} onSort={toggleSort} />
-                    <th className="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -984,28 +984,8 @@ export default function ClocksTable({
                             </td>
                             <td className="px-4 py-4">{clock.island}</td>
                             <td className="px-4 py-4">{clock.source}</td>
+                            <td className="px-4 py-4 text-zinc-300">{clock.username || "-"}</td>
                             <td className="px-4 py-4"><FormattedDate value={clock.publishedAt} /></td>
-                            <td className="px-4 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Link
-                                  href={`/clocks/${clock.id}`}
-                                  className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 transition hover:border-zinc-500"
-                                >
-                                  Ver
-                                </Link>
-                                <button
-                                  type="button"
-                                  onClick={() => handleArchive([clock.id], !isArchived)}
-                                  className={`rounded-full px-3 py-1 text-xs transition ${
-                                    isArchived
-                                      ? "border border-emerald-500/50 text-emerald-300"
-                                      : "border border-rose-500/50 text-rose-300"
-                                  }`}
-                                >
-                                  {isArchived ? "Desarchivar" : "Archivar"}
-                                </button>
-                              </div>
-                            </td>
                           </tr>
                         );
                       })}
@@ -1090,6 +1070,7 @@ export default function ClocksTable({
           island={lightboxClock.island}
           description={lightboxClock.description}
           sourceUrl={lightboxClock.sourceUrl}
+          username={lightboxClock.username}
         />
       )}
       <BottomNav />

@@ -24,6 +24,7 @@ export type Clock = {
   sourceUrl: string;
   photos: string[];
   priceHistory: ClockPricePoint[];
+  username?: string;
 };
 
 type ApiPhoto = {
@@ -51,6 +52,7 @@ type ApiClock = {
   url?: string;
   photos?: Array<ApiPhoto | string>;
   price_history?: ApiPriceHistory[];
+  username?: string;
 };
 
 export type ClocksFilters = {
@@ -128,7 +130,8 @@ function mapClock(apiClock: ApiClock): Clock {
     updatedAt,
     sourceUrl: apiClock.url ?? "",
     photos: normalizePhotos(apiClock.photos),
-    priceHistory: normalizePriceHistory(apiClock.price_history, publishedAt, price)
+    priceHistory: normalizePriceHistory(apiClock.price_history, publishedAt, price),
+    username: apiClock.username ?? undefined
   };
 }
 

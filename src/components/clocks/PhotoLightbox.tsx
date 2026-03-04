@@ -13,6 +13,7 @@ interface PhotoLightboxProps {
   island?: string | null;
   description?: string | null;
   sourceUrl?: string | null;
+  username?: string | null;
 }
 
 interface PhotoQuality {
@@ -32,7 +33,8 @@ export default function PhotoLightbox({
   source,
   island,
   description,
-  sourceUrl
+  sourceUrl,
+  username
 }: PhotoLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
@@ -343,11 +345,16 @@ export default function PhotoLightbox({
             </div>
           )}
 
-          {/* Price and source */}
+          {/* Price, source and username */}
           <div className="flex flex-wrap items-center gap-4 text-sm">
             {price != null && (
               <span className="text-emerald-400 font-semibold text-base">
                 {price.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+              </span>
+            )}
+            {username && (
+              <span className="text-zinc-300">
+                👤 {username}
               </span>
             )}
             {source && (
