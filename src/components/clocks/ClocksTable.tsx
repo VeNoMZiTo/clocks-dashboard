@@ -26,6 +26,7 @@ import LazyImage from "./LazyImage";
 import PullToRefresh from "./PullToRefresh";
 import LeadStatusBadge from "./LeadStatusBadge";
 import PhotoLightbox from "./PhotoLightbox";
+import FormattedDate from "./FormattedDate";
 import BottomNav from "@/components/layout/BottomNav";
 
 const ISLANDS = [
@@ -59,7 +60,7 @@ type Filters = {
   page: number;
 };
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 25;
 
 const formatPrice = (value: number, currency: string) =>
   new Intl.NumberFormat("es-ES", {
@@ -923,13 +924,15 @@ export default function ClocksTable({
                                 className="h-4 w-4 rounded border-zinc-700 bg-black"
                               />
                             </td>
-                            <td className="px-4 py-4">
+                            <td 
+                              className="px-4 py-4 cursor-pointer"
+                              onClick={() => handleOpenLightbox(clock, 0)}
+                            >
                               <LazyImage
                                 src={clock.photos[0]}
                                 alt={clock.title}
                                 containerClassName="h-12 w-16 rounded-lg"
                                 className="h-full w-full object-cover"
-                                onClick={() => handleOpenLightbox(clock, 0)}
                               />
                             </td>
                             <td className="px-4 py-4">
@@ -988,7 +991,7 @@ export default function ClocksTable({
                             </td>
                             <td className="px-4 py-4">{clock.island}</td>
                             <td className="px-4 py-4">{clock.source}</td>
-                            <td className="px-4 py-4">{formatDate(clock.publishedAt)}</td>
+                            <td className="px-4 py-4"><FormattedDate value={clock.publishedAt} /></td>
                             <td className="px-4 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <Link
@@ -1079,16 +1082,18 @@ export default function ClocksTable({
             </div>
           </div>
         )}
-        
-        {lightboxOpen && lightboxClock && (
-          <PhotoLightbox
-            photos={lightboxClock.photos}
-            title={lightboxClock.title}
-            initialIndex={lightboxPhotoIndex}
-            onClose={handleCloseLightbox}
-          />
-        )}
       </PullToRefresh>
+      
+      {/* Lightbox - fuera de PullToRefresh para z-index correcto */}
+      {lightboxOpen && lightboxClock && (
+        <PhotoLightbox
+          photos={lightboxClock.photos}
+          title={lightboxClock.title}
+          initialIndex={lightboxPhotoIndex}
+          onClose={handleCloseLightbox}
+          onArchive={() => applySwipeAction(lightboxClock, "archive")}
+        />
+      )}
       <BottomNav />
     </div>
   );
@@ -1550,6 +1555,7 @@ function SwipeCard({
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const axisRef = useRef<"x" | "y" | null>(null);
+  const hadDragRef = useRef(false);
   const animationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const leftOpacity = Math.min(1, Math.max(0, -dragX / 80));
@@ -1570,6 +1576,7 @@ function SwipeCard({
     startXRef.current = event.clientX;
     startYRef.current = event.clientY;
     axisRef.current = null;
+    hadDragRef.current = false;
     setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -1582,6 +1589,9 @@ function SwipeCard({
     if (!axisRef.current) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       axisRef.current = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (axisRef.current === "x") {
+        hadDragRef.current = true;
+      }
     }
 
     if (axisRef.current !== "x") return;
@@ -1594,6 +1604,11 @@ function SwipeCard({
     if (!dragging) return;
     event.currentTarget.releasePointerCapture(event.pointerId);
     setDragging(false);
+
+    // Si no hubo drag, dejar que el click se propague
+    if (!hadDragRef.current) {
+      return;
+    }
 
     if (dragX < -80) {
       onSwipeArchive();
@@ -1683,7 +1698,7 @@ function SwipeCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          <span>{formatDate(clock.publishedAt)}</span>
+          <FormattedDate value={clock.publishedAt} />
           <LeadStatusBadge status={leadStatus} />
           <select
             value={leadStatus}
