@@ -7,6 +7,7 @@ interface PhotoLightboxProps {
   title: string;
   initialIndex: number;
   onClose: () => void;
+  onArchive?: () => void;
 }
 
 interface PhotoQuality {
@@ -20,7 +21,8 @@ export default function PhotoLightbox({
   photos,
   title,
   initialIndex,
-  onClose
+  onClose,
+  onArchive
 }: PhotoLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
@@ -29,13 +31,21 @@ export default function PhotoLightbox({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragAxis, setDragAxis] = useState<"x" | "y" | null>(null);
   const [quality, setQuality] = useState<PhotoQuality | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const currentPhoto = photos[currentIndex] || photos[0];
+  const currentPhoto = photos[currentIndex] || photos[0] || "";
 
-  // Escape key to close
+  // Reset image state when photo changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [currentPhoto]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -44,14 +54,20 @@ export default function PhotoLightbox({
         handlePrev();
       } else if (event.key === "ArrowRight") {
         handleNext();
+      } else if (event.key === "e" || event.key === "E") {
+        if (onArchive) {
+          onArchive();
+          onClose();
+        }
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex]);
+  }, [onClose, onArchive]);
 
   // Detect photo quality
   useEffect(() => {
+    if (!currentPhoto) return;
     const img = new Image();
     img.onload = () => {
       const width = img.width;
@@ -96,7 +112,7 @@ export default function PhotoLightbox({
     setDragStart({ x: event.clientX, y: event.clientY });
     setDragAxis(null);
     setIsDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    // NO usar setPointerCapture - bloquea clicks en elementos hijos
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
@@ -124,7 +140,7 @@ export default function PhotoLightbox({
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
     if (!isDragging) return;
     
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // NO usar releasePointerCapture - no usamos setPointerCapture
     setIsDragging(false);
 
     const dx = event.clientX - dragStart.x;
@@ -166,12 +182,15 @@ export default function PhotoLightbox({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+      onClick={onClose}
+    >
       {/* Close button */}
       <button
         type="button"
-        onClick={onClose}
-        className="fixed right-6 top-6 z-50 rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        className="fixed right-6 top-6 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
         aria-label="Cerrar"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,8 +203,8 @@ export default function PhotoLightbox({
         <>
           <button
             type="button"
-            onClick={handlePrev}
-            className="fixed left-6 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+            onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+            className="fixed left-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
             aria-label="Foto anterior"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -194,8 +213,8 @@ export default function PhotoLightbox({
           </button>
           <button
             type="button"
-            onClick={handleNext}
-            className="fixed right-6 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
+            onClick={(e) => { e.stopPropagation(); handleNext(); }}
+            className="fixed right-6 top-1/2 -translate-y-1/2 z-[10000] rounded-full bg-black/60 p-3 text-white backdrop-blur hover:bg-black/80 transition"
             aria-label="Siguiente foto"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -208,30 +227,62 @@ export default function PhotoLightbox({
       {/* Image container */}
       <div
         ref={containerRef}
-        className="relative h-full w-full overflow-hidden"
+        className="fixed inset-0 flex items-center justify-center overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <div className="flex h-full items-center justify-center">
-          <img
-            ref={imageRef}
-            src={currentPhoto}
-            alt={`${title} foto ${currentIndex + 1}`}
-            className="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-150 ease-out select-none"
-            style={{
-              transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-              cursor: scale > 1 ? "grab" : "default"
-            }}
-            draggable={false}
-          />
-        </div>
+          {/* No photos state */}
+          {!currentPhoto && (
+            <div className="text-zinc-500 text-center">
+              <svg className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p>Sin fotos disponibles</p>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {currentPhoto && !imageLoaded && !imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-600 border-t-white" />
+            </div>
+          )}
+
+          {/* Error state */}
+          {currentPhoto && imageError && (
+            <div className="text-zinc-500 text-center">
+              <svg className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p>Error al cargar la imagen</p>
+            </div>
+          )}
+
+          {/* Actual image */}
+          {currentPhoto && !imageError && (
+            <img
+              ref={imageRef}
+              src={currentPhoto}
+              alt={`${title} foto ${currentIndex + 1}`}
+              className="max-h-[80vh] max-w-[80vw] object-contain select-none"
+              style={{
+                transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+                cursor: scale > 1 ? "grab" : "default",
+                opacity: imageLoaded ? 1 : 0.5
+              }}
+              draggable={false}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+            />
+          )}
       </div>
 
       {/* Info overlay */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/80 to-transparent px-6 py-8">
+      <div className="fixed bottom-0 left-0 right-0 z-[10001] bg-gradient-to-t from-black/80 to-transparent px-6 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
           {/* Photo counter */}
           <div className="flex items-center justify-between text-white">
